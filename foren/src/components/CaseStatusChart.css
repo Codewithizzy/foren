@@ -1,0 +1,129 @@
+/* Main container */
+.case-dashboard-container {
+  background-color: #121212;
+  color: #df0909;
+  padding: 24px;
+  border-radius: 8px;
+  border: 1px solid #333;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* Title styling */
+.case-dashboard-title {
+  color: #4dabf5;
+  margin-bottom: 24px !important;
+  font-weight: 600;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* Filter controls */
+.filter-container {
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.filter-label {
+  color: #a0a0a0 !important;
+  margin-right: 8px !important;
+}
+
+.filter-select .MuiSelect-select {
+  background-color: #1e1e1e;
+  color: #e0e0e0;
+  border-radius: 4px;
+}
+
+.filter-select .MuiOutlinedInput-notchedOutline {
+  border-color: #333;
+}
+
+.filter-select:hover .MuiOutlinedInput-notchedOutline {
+  border-color: #4dabf5 !important;
+}
+
+/* Chart container */
+.chart-container {
+  height: 300px;
+  margin-bottom: 32px;
+  background-color: #1e1e1e;
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid #333;
+}
+
+/* Table styling */
+.case-table {
+  background-color: #1e1e1e;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #333;
+}
+
+.case-table .MuiTableHead-root {
+  background-color: #252525;
+}
+
+.case-table .MuiTableCell-head {
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}
+
+.case-table .MuiTableCell-body {
+  color: #e0e0e0 !important;
+  border-bottom: 1px solid #333 !important;
+}
+
+.case-table .MuiTableRow-root:hover {
+  background-color: rgba(77, 171, 245, 0.1) !important;
+}
+
+/* Pagination styling */
+.pagination-container {
+  margin-top: 24px;
+}
+
+.pagination-container .MuiPaginationItem-root {
+  color: #e0e0e0;
+}
+
+.pagination-container .MuiPaginationItem-page.Mui-selected {
+  background-color: #4dabf5 !important;
+  color: #121212;
+}
+
+.pagination-container .MuiPaginationItem-page:hover {
+  background-color: rgba(77, 171, 245, 0.2) !important;
+}
+
+/* Tooltip styling */
+.recharts-tooltip {
+  background-color: #252525 !important;
+  border: 1px solid #333 !important;
+  color: #e0e0e0 !important;
+}
+
+.recharts-legend-item-text {
+  color: #e0e0e0 !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .case-dashboard-container {
+      padding: 16px;
+  }
+  
+  .chart-container {
+      height: 250px;
+      padding: 8px;
+  }
+  
+  .filter-container {
+      flex-direction: column;
+      align-items: center;
+  }
+  
+  .filter-label {
+      margin-bottom: 8px !important;
+      margin-right: 0 !important;
+  }
+}

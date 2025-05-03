@@ -1,0 +1,142 @@
+/* DarkThemeHomePage.css */
+
+/* Base styles */
+.home-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #d15f5f;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.home-main {
+  flex: 1;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Hero section */
+.home-hero {
+  text-align: center;
+  margin-bottom: 3rem;
+  padding: 2rem 1rem;
+  background-color: #1e1e1e;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  border: 1px solid #333;
+}
+
+.logo-container {
+  margin: 0 auto 1.5rem;
+  max-width: 150px;
+  filter: brightness(0.9);
+}
+
+.home-title {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  color: #ffffff;
+  font-weight: 700;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.highlight {
+  color: #4dabf5;
+  font-weight: 800;
+}
+
+.home-subtitle {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  color: #b0b0b0;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* Feature grid */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.feature-card {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  background-color: #1e1e1e;
+  border-radius: 8px;
+  padding: 1.5rem;
+  text-decoration: none;
+  color: inherit;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+  border-left: 4px solid #4dabf5;
+  border: 1px solid #333;
+}
+
+.feature-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.4);
+  border-left: 4px solid #228be6;
+  background-color: #252525;
+}
+
+.feature-card h3 {
+  color: #ffffff;
+  margin-bottom: 0.5rem;
+  font-size: 1.2rem;
+}
+
+.feature-card p {
+  color: #a0a0a0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.card-content {
+  flex: 1;
+}
+
+.card-icon {
+  font-size: 1.8rem;
+  margin-left: 1rem;
+  display: flex;
+  align-items: center;
+  color: #4dabf5;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .home-main {
+      padding: 1rem;
+  }
+  
+  .home-title {
+      font-size: 2rem;
+  }
+  
+  .feature-grid {
+      grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .home-title {
+      font-size: 1.8rem;
+  }
+  
+  .feature-card {
+      flex-direction: column;
+  }
+  
+  .card-icon {
+      margin-left: 0;
+      margin-top: 1rem;
+      justify-content: flex-start;
+  }
+}
