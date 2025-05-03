@@ -1,0 +1,213 @@
+/* CaseListPage.css */
+
+/* Main container */
+.case-list-container {
+    padding: 24px;
+    background-color: #f5f7fa;
+    min-height: 100vh;
+  }
+  
+  /* Header section */
+  .case-list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+  
+  .page-title {
+    color: #2c3e50;
+    font-weight: 600;
+  }
+  
+  .action-buttons {
+    display: flex;
+    gap: 12px;
+  }
+  
+  .new-case-button {
+    background-color: #4dabf5;
+    color: white;
+  }
+  
+  .new-case-button:hover {
+    background-color: #3a8bc8;
+  }
+  
+  .export-button {
+    border-color: #4dabf5;
+    color: #4dabf5;
+  }
+  
+  .refresh-button {
+    color: #4dabf5;
+  }
+  
+  /* Filters section */
+  .filters-section {
+    padding: 16px;
+    margin-bottom: 16px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  .search-filter {
+    margin-bottom: 16px;
+  }
+  
+  .dropdown-filters {
+    display: flex;
+    gap: 16px;
+  }
+  
+  .status-filter, .priority-filter {
+    min-width: 180px;
+  }
+  
+  .clear-filters {
+    margin-left: auto;
+    color: #666;
+    border-color: #ddd;
+  }
+  
+  /* Bulk actions */
+  .bulk-actions {
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    background-color: #fff8e1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  
+  .bulk-buttons {
+    display: flex;
+    gap: 12px;
+  }
+  
+  .bulk-delete {
+    background-color: #ff4444;
+  }
+  
+  .bulk-escalate {
+    background-color: #ff9800;
+  }
+  
+  /* Data grid */
+  .data-grid-container {
+    height: 600px;
+    background-color: white;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  
+  .data-grid {
+    border: none;
+  }
+  
+  /* Modal styles */
+  .create-modal {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .modal-content {
+    width: 600px;
+    max-width: 90vw;
+    padding: 24px;
+    outline: none;
+  }
+  
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+  
+  .modal-form {
+    margin-top: 16px;
+  }
+  
+  .create-button {
+    background-color: #4dabf5;
+    color: white;
+    padding: 12px;
+    margin-top: 16px;
+  }
+  
+  .create-button:hover {
+    background-color: #3a8bc8;
+  }
+  
+  .create-button:disabled {
+    background-color: #cccccc;
+  }
+  
+  /* Delete dialog */
+  .delete-dialog .MuiPaper-root {
+    padding: 24px;
+    border-radius: 8px;
+  }
+  
+  /* Snackbar notifications */
+  .snackbar {
+    border-radius: 4px;
+  }
+  
+  .snackbar.success {
+    background-color: #4caf50;
+  }
+  
+  .snackbar.error {
+    background-color: #f44336;
+  }
+  
+  .snackbar.warning {
+    background-color: #ff9800;
+  }
+  
+  .snackbar.info {
+    background-color: #2196f3;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .case-list-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 16px;
+    }
+  
+    .action-buttons {
+      width: 100%;
+      justify-content: space-between;
+    }
+  
+    .dropdown-filters {
+      flex-direction: column;
+      gap: 12px;
+    }
+  
+    .status-filter, .priority-filter {
+      width: 100%;
+    }
+  
+    .clear-filters {
+      margin-left: 0;
+      width: 100%;
+    }
+  
+    .bulk-actions {
+      flex-direction: column;
+      gap: 12px;
+      align-items: flex-start;
+    }
+  
+    .bulk-buttons {
+      width: 100%;
+      justify-content: space-between;
+    }
+  }
