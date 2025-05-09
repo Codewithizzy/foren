@@ -5,7 +5,6 @@ import {
   Button,
   Divider,
   Dialog,
-  Grid,
   DialogTitle,
   DialogContent,
   DialogActions,
@@ -18,17 +17,20 @@ import {
   IconButton,
   Tooltip,
   Paper,
+  Badge,
   Avatar,
   List,
   ListItem,
   ListItemAvatar,
   ListItemText,
   ListItemSecondaryAction,
+  LinearProgress,
   Snackbar,
   Alert,
   Card,
   CardHeader,
   CardContent,
+  CardActions,
   Tabs,
   Tab,
   Modal
@@ -41,20 +43,32 @@ import {
   Search,
   FileUpload,
   Download,
+  Description,
   CheckCircle,
   Warning,
   Error as ErrorIcon,
   Info,
+  Person,
+  Schedule,
+  LocationOn,
+  Link,
+  History,
   Assignment,
+  CloudUpload,
+  CloudDownload,
+  FilterList,
   Print,
   Share,
   Visibility,
-  Close
+  MoreVert,
+  Close,
+  Save,
+  Cancel
 } from '@mui/icons-material';
 import { DataGrid, GridColDef, GridToolbar, GridActionsCellItem } from '@mui/x-data-grid';
 import { v4 as uuidv4 } from 'uuid';
 import { saveAs } from 'file-saver';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 
 // Types
 interface Evidence {
@@ -101,20 +115,7 @@ interface CustodyEvent {
 const statusOptions = ['All', 'submitted', 'processed', 'analyzed', 'archived', 'in-transit'];
 const priorityOptions = ['All', 'low', 'medium', 'high', 'critical'];
 const integrityOptions = ['All', 'intact', 'compromised', 'partial'];
-const safeFormatDate = (dateString: string, formatStr: string) => {
-  try {
-    // First try to parse as ISO string
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) {
-      // If not valid, try parsing as ISO format
-      return format(parseISO(dateString), formatStr);
-    }
-    return format(date, formatStr);
-  } catch (e) {
-    console.error('Invalid date format:', dateString);
-    return 'Invalid date';
-  }
-};
+
 const initialEvidence: Evidence[] = [
   {
     id: 'E-001',
@@ -183,6 +184,8 @@ const EvidenceInventory: React.FC = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [custodyChain, setCustodyChain] = useState<CustodyEvent[]>([]);
   const [activeTab, setActiveTab] = useState(0);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [notification, setNotification] = useState({
     open: false,
     message: '',
@@ -232,7 +235,7 @@ const EvidenceInventory: React.FC = () => {
       const mockCustody: CustodyEvent[] = [
         {
           id: 'C-001',
-          handler: selectedEvidence.collectedBy || 'Unknown Officer',
+          handler: form.collectedBy || 'Unknown Officer',
           role: 'Collector',
           time: selectedEvidence.collectedDate,
           location: selectedEvidence.location,
@@ -331,6 +334,37 @@ const EvidenceInventory: React.FC = () => {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     saveAs(blob, 'evidence_inventory.csv');
     showNotification('CSV exported successfully', 'success');
+  };
+
+  const handleFileUpload = () => {
+    if (!selectedFile) return;
+
+    // Simulate upload progress
+    const interval = setInterval(() => {
+      setUploadProgress((prev) => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          return 100;
+        }
+        return prev + 10;
+      });
+    }, 300);
+
+    setTimeout(() => {
+      const newFile: File = {
+        id: `F-${uuidv4().slice(0, 4).toUpperCase()}`,
+        name: selectedFile.name,
+        type: selectedFile.type || 'unknown',
+        size: `${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB`,
+        uploadedBy: 'Current User',
+        uploadedAt: new Date().toISOString()
+      };
+
+      setFiles([...files, newFile]);
+      setSelectedFile(null);
+      setUploadProgress(0);
+      showNotification('File uploaded successfully', 'success');
+    }, 3000);
   };
 
   const showNotification = (message: string, severity: 'success' | 'error' | 'warning' | 'info') => {
@@ -434,13 +468,13 @@ const EvidenceInventory: React.FC = () => {
       field: 'collectedDate',
       headerName: 'Collected',
       width: 160,
-      valueFormatter: (params) => safeFormatDate(params.value, 'MMM dd, yyyy')
+      valueFormatter: (params) => format(new Date(params.value), 'MMM dd, yyyy')
     },
     {
       field: 'lastUpdated',
       headerName: 'Last Updated',
       width: 160,
-      valueFormatter: (params) => safeFormatDate(params.value, 'MMM dd, yyyy')
+      valueFormatter: (params) => format(new Date(params.value), 'MMM dd, yyyy')
     },
     {
       field: 'actions',
@@ -480,7 +514,7 @@ const EvidenceInventory: React.FC = () => {
       field: 'uploadedAt',
       headerName: 'Upload Date',
       width: 180,
-      valueFormatter: (params) => safeFormatDate(params.value, 'MMM dd, yyyy HH:mm')
+      valueFormatter: (params) => format(new Date(params.value), 'MMM dd, yyyy HH:mm')
     },
     {
       field: 'actions',
@@ -517,7 +551,7 @@ const EvidenceInventory: React.FC = () => {
       field: 'time',
       headerName: 'Time',
       width: 180,
-      valueFormatter: (params) => safeFormatDate(params.value, 'MMM dd, yyyy HH:mm')
+      valueFormatter: (params) => format(new Date(params.value), 'MMM dd, yyyy HH:mm')
     },
     { field: 'location', headerName: 'Location', width: 200 }
   ];
@@ -609,7 +643,7 @@ const EvidenceInventory: React.FC = () => {
 
         <Button
           variant="outlined"
-          startIcon={<Delete />}
+          startIcon={<FilterList />}
           onClick={() => {
             setStatusFilter('All');
             setPriorityFilter('All');
@@ -839,13 +873,13 @@ const EvidenceInventory: React.FC = () => {
                           <strong>Collected By:</strong> {selectedEvidence.collectedBy}
                         </Typography>
                         <Typography variant="body1" gutterBottom>
-  <strong>Collected Date:</strong>{' '}
-  {safeFormatDate(selectedEvidence.collectedDate, 'MMM dd, yyyy HH:mm')}
-</Typography>
-<Typography variant="body1" gutterBottom>
-  <strong>Last Updated:</strong>{' '}
-  {safeFormatDate(selectedEvidence.lastUpdated, 'MMM dd, yyyy HH:mm')}
-</Typography>
+                          <strong>Collected Date:</strong>{' '}
+                          {format(new Date(selectedEvidence.collectedDate), 'MMM dd, yyyy HH:mm')}
+                        </Typography>
+                        <Typography variant="body1" gutterBottom>
+                          <strong>Last Updated:</strong>{' '}
+                          {format(new Date(selectedEvidence.lastUpdated), 'MMM dd, yyyy HH:mm')}
+                        </Typography>
                       </CardContent>
                     </Card>
                   </Grid>
@@ -914,7 +948,10 @@ const EvidenceInventory: React.FC = () => {
                     <Button
                       variant="contained"
                       startIcon={<Add />}
-                      onClick={() => showNotification('Add note clicked', 'info')}
+                      onClick={() => {
+                        // Implement add note functionality
+                        showNotification('Add note clicked', 'info');
+                      }}
                     >
                       Add Note
                     </Button>
@@ -981,7 +1018,10 @@ const EvidenceInventory: React.FC = () => {
                     <Button
                       variant="contained"
                       startIcon={<FileUpload />}
-                      onClick={() => showNotification('File upload clicked', 'info')}
+                      onClick={() => {
+                        // Implement file upload functionality
+                        showNotification('File upload clicked', 'info');
+                      }}
                     >
                       Upload File
                     </Button>

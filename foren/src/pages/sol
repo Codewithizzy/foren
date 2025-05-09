@@ -1,0 +1,7 @@
+npm install @solana/wallet-adapter-react \
+@solana/wallet-adapter-wallets \
+@solana/wallet-adapter-react-ui \
+@solana/wallet-adapter-base \
+@solana/web3.js
+npm install @solana/wallet-adapter-material-ui
+npm install --save @web3auth/modal @web3auth/solana-provider @solana/web3.js

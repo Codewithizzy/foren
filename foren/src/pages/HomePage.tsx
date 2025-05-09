@@ -6,8 +6,6 @@ import './HomePage.css';
 const HomePage: React.FC = () => {
   return (
     <div className="home-container">
-      
-
       <main className="home-main">
         <div className="home-hero">
           <div className="logo-container">
@@ -62,16 +60,58 @@ const HomePage: React.FC = () => {
             <div className="card-icon">⚖️</div>
           </Link>
 
-          <Link to="/login" className="feature-card">
+        
+          <Link to="/case-detail" className="feature-card">
+            <div className="card-content">
+              <h3>Case Data</h3>
+              <p>Explore structured data across investigations.</p>
+            </div>
+            <div className="card-icon">📁</div>
+          </Link>
+
+          <Link to="/chain-of-custody" className="feature-card">
+            <div className="card-content">
+              <h3>Chain of Custody</h3>
+              <p>Track evidence from collection to court.</p>
+            </div>
+            <div className="card-icon">🔗</div>
+          </Link>
+
+          <Link to="/footwear" className="feature-card">
+            <div className="card-content">
+              <h3>Footwear</h3>
+              <p>Identify and match shoeprint evidence.</p>
+            </div>
+            <div className="card-icon">👣</div>
+          </Link>
+
+          <Link to="/cross-platform" className="feature-card">
+            <div className="card-content">
+              <h3>Cross-Platform</h3>
+              <p>Integrate data from multiple systems.</p>
+            </div>
+            <div className="card-icon">🌐</div>
+          </Link>
+
+          <Link to="/message-analysis" className="feature-card">
+            <div className="card-content">
+              <h3>Message Analysis</h3>
+              <p>Analyze texts, chats, and communications.</p>
+            </div>
+            <div className="card-icon">💬</div>
+          </Link>
+
+          <Link to="/auth" className="feature-card">
             <div className="card-content">
               <h3>Login</h3>
               <p>Access secure tools and features.</p>
             </div>
             <div className="card-icon">🔐</div>
           </Link>
+
+      
         </div>
       </main>
-
     </div>
   );
 };

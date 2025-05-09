@@ -1,708 +1,1035 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams } from 'react-router-dom';
 import {
   Box,
   Typography,
   Paper,
   Grid,
-  Button,
-  Divider,
+  Avatar,
   Chip,
-  Modal,
+  Divider,
   TextField,
+  Button,
   IconButton,
   Tooltip,
-  InputAdornment,
-  Avatar,
-  Badge,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  MenuItem,
-  Select,
-  FormControl,
-  InputLabel,
-  Snackbar,
-  Alert,
   LinearProgress,
   List,
   ListItem,
   ListItemAvatar,
   ListItemText,
-  ListItemSecondaryAction
+  ListItemSecondaryAction,
+  Badge,
+  Modal,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Snackbar,
+  Alert,
+  AlertTitle,
+  Tabs,
+  Tab,
+  Card,
+  CardContent,
+  CardHeader,
+  CardActions
 } from '@mui/material';
 import {
-  Fingerprint,
-  Science,
-  PhotoCamera,
-  Description,
-  Edit,
-  Download,
-  Comment,
-  FileUpload,
-  Search,
-  Close,
-  Delete,
-  Link,
-  CheckCircle,
-  Error,
-  Pending,
-  AddLink,
-  History,
-  Person,
-  Schedule,
-  NoteAdd,
-  CloudUpload,
-  FileCopy,
-  VerifiedUser,
-  Lock
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Add as AddIcon,
+  Search as SearchIcon,
+  FileUpload as FileUploadIcon,
+  Download as DownloadIcon,
+  Description as DescriptionIcon,
+  CheckCircle as CheckCircleIcon,
+  Warning as WarningIcon,
+  Error as ErrorIcon,
+  Info as InfoIcon,
+  Person as PersonIcon,
+  Schedule as ScheduleIcon,
+  LocationOn as LocationIcon,
+  Link as LinkIcon,
+  History as HistoryIcon,
+  Assignment as AssignmentIcon,
+  CloudUpload as CloudUploadIcon,
+  CloudDownload as CloudDownloadIcon
 } from '@mui/icons-material';
-import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { CSVLink } from 'react-csv';
-import './EvidenceDetail.css';
+import { DataGrid, GridColDef, GridToolbar } from '@mui/x-data-grid';
+import { format, parseISO } from 'date-fns';
 
-interface Note {
-  id: number;
-  text: string;
-  author: string;
-  timestamp: string;
-  edited: boolean;
+// Types
+interface Evidence {
+  id: string;
+  type: string;
+  caseId: string;
+  collectedTime: string;
+  location: string;
+  collectedBy: string;
+  status: 'submitted' | 'processed' | 'analyzed' | 'archived';
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  integrity: 'intact' | 'compromised' | 'partial';
+  description: string;
 }
 
-interface EvidenceFile {
-  id: number;
+interface Note {
+  id: string;
+  content: string;
+  createdAt: string;
+  updatedAt?: string;
+  createdBy: string;
+  isEdited: boolean;
+}
+
+interface File {
+  id: string;
   name: string;
   type: string;
   size: string;
-  uploaded: string;
   uploadedBy: string;
+  uploadedAt: string;
 }
 
-interface CustodyEntry {
-  id: number;
+interface CustodyEvent {
+  id: string;
   handler: string;
   role: string;
   time: string;
   location: string;
+  action: string;
+}
+
+interface AuditLog {
+  id: string;
+  action: string;
+  actor: string;
+  time: string;
+  details: string;
 }
 
 interface RelatedEvidence {
   id: string;
   type: string;
-  status: string;
+  relation: string;
+  caseId: string;
 }
 
-interface AuditEntry {
-  id: number;
-  action: string;
-  by: string;
-  time: string;
-  details: string;
-}
-
-const EvidenceDetail: React.FC = () => {
-  // State management
-  const [openNotesModal, setOpenNotesModal] = useState(false);
-  const [openFileModal, setOpenFileModal] = useState(false);
-  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const [noteInput, setNoteInput] = useState('');
-  const [notes, setNotes] = useState<Note[]>([
-    { id: 1, text: 'Size 10, distinct wear pattern on right heel', author: 'Analyst A', timestamp: '2023-05-15 11:00', edited: false },
-  ]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedNote, setSelectedNote] = useState<number | null>(null);
-  const [fileUploadProgress, setFileUploadProgress] = useState(0);
-  const [uploading, setUploading] = useState(false);
-  const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
+const EvidenceDetails: React.FC = () => {
+  const { evidenceId } = useParams<{ evidenceId: string }>();
+  const [evidence, setEvidence] = useState<Evidence | null>(null);
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [files, setFiles] = useState<File[]>([]);
+  const [custodyChain, setCustodyChain] = useState<CustodyEvent[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [relatedEvidence, setRelatedEvidence] = useState<RelatedEvidence[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
+  const [isFileModalOpen, setIsFileModalOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [currentNote, setCurrentNote] = useState<Note | null>(null);
+  const [currentFile, setCurrentFile] = useState<File | null>(null);
+  const [noteContent, setNoteContent] = useState('');
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [files, setFiles] = useState<EvidenceFile[]>([
-    { id: 1, name: 'photo1.jpg', type: 'image/jpeg', size: '1.2MB', uploaded: '2023-05-15', uploadedBy: 'Officer Smith' },
-    { id: 2, name: 'report.pdf', type: 'application/pdf', size: '500KB', uploaded: '2023-05-15', uploadedBy: 'Lab Technician' },
-  ]);
+  const [activeTab, setActiveTab] = useState(0);
+  const [notification, setNotification] = useState<{
+    open: boolean;
+    message: string;
+    severity: 'success' | 'error' | 'warning' | 'info';
+  }>({ open: false, message: '', severity: 'info' });
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Evidence data
-  const evidence = {
-    id: 'E-001',
-    type: 'Footwear Impression',
-    caseId: 'C-2023-015',
-    collected: '2023-05-15 10:30',
-    collectedBy: 'Officer Smith',
-    location: 'Bank entrance',
-    status: 'Analyzed',
-    priority: 'High',
-    integrity: 'Intact',
-    custodyChain: [
-      { id: 1, handler: 'Officer Smith', role: 'Collecting Officer', time: '2023-05-15 10:30', location: 'Crime Scene' },
-      { id: 2, handler: 'Lab Technician Joe', role: 'Evidence Processor', time: '2023-05-15 13:00', location: 'Forensic Lab' },
-    ],
-    relatedEvidence: [
-      { id: 'E-002', type: 'Fingerprint', status: 'Analyzed' },
-      { id: 'E-003', type: 'DNA Sample', status: 'Pending' },
-    ],
-    auditTrail: [
-      { id: 1, action: 'Note Added', by: 'Analyst A', time: '2023-05-15 11:00', details: 'Initial analysis note' },
-      { id: 2, action: 'File Uploaded', by: 'Officer Smith', time: '2023-05-15 10:40', details: 'photo1.jpg' },
-      { id: 3, action: 'Status Changed', by: 'Lab Supervisor', time: '2023-05-16 09:15', details: 'From "Pending" to "Analyzed"' },
-    ],
+  const safeFormatDate = (dateString: string, formatStr: string = 'MMM dd, yyyy HH:mm') => {
+    if (!dateString) return 'N/A';
+    
+    try {
+      // Try parsing as ISO string first
+      const date = parseISO(dateString);
+      if (isNaN(date.getTime())) {
+        // Fallback to Date constructor if parseISO fails
+        const fallbackDate = new Date(dateString);
+        if (!isNaN(fallbackDate.getTime())) {
+          return format(fallbackDate, formatStr);
+        }
+        return 'Invalid date';
+      }
+      return format(date, formatStr);
+    } catch (e) {
+      console.error('Date formatting error:', e);
+      return 'Invalid date';
+    }
   };
 
-  // Handlers
+  // Simulate data fetching
+  useEffect(() => {
+    // Mock data for demonstration
+    const mockEvidence: Evidence = {
+      id: evidenceId || 'EVD-2023-0456',
+      type: 'Digital',
+      caseId: 'CASE-2023-0789',
+      collectedTime: '2023-05-15T14:30:00Z',
+      location: 'Crime Scene - 123 Main St, Apt 4B',
+      collectedBy: 'Detective Sarah Johnson',
+      status: 'processed',
+      priority: 'high',
+      integrity: 'intact',
+      description: 'iPhone 12 Pro Max with cracked screen found at the scene'
+    };
+
+    const mockNotes: Note[] = [
+      {
+        id: 'NOTE-001',
+        content: 'Initial examination shows multiple photos deleted recently.',
+        createdAt: '2023-05-15T15:45:00Z',
+        createdBy: 'Tech Analyst Mark',
+        isEdited: false
+      },
+      {
+        id: 'NOTE-002',
+        content: 'Found encrypted messaging apps installed.',
+        createdAt: '2023-05-16T09:15:00Z',
+        updatedAt: '2023-05-16T10:30:00Z',
+        createdBy: 'Forensic Expert Lisa',
+        isEdited: true
+      }
+    ];
+
+    const mockFiles: File[] = [
+      {
+        id: 'FILE-001',
+        name: 'device_image_1.jpg',
+        type: 'image/jpeg',
+        size: '2.4 MB',
+        uploadedBy: 'Officer Smith',
+        uploadedAt: '2023-05-15T16:20:00Z'
+      },
+      {
+        id: 'FILE-002',
+        name: 'forensic_report.pdf',
+        type: 'application/pdf',
+        size: '1.8 MB',
+        uploadedBy: 'Tech Analyst Mark',
+        uploadedAt: '2023-05-16T11:45:00Z'
+      }
+    ];
+
+    const mockCustodyChain: CustodyEvent[] = [
+      {
+        id: 'CUST-001',
+        handler: 'Officer Smith',
+        role: 'First Responder',
+        time: '2023-05-15T14:30:00Z',
+        location: 'Crime Scene',
+        action: 'Collected'
+      },
+      {
+        id: 'CUST-002',
+        handler: 'Detective Johnson',
+        role: 'Lead Investigator',
+        time: '2023-05-15T15:00:00Z',
+        location: 'Evidence Locker',
+        action: 'Checked In'
+      },
+      {
+        id: 'CUST-003',
+        handler: 'Tech Analyst Mark',
+        role: 'Forensics',
+        time: '2023-05-16T08:00:00Z',
+        location: 'Lab 3',
+        action: 'Analysis Started'
+      }
+    ];
+
+    const mockAuditLogs: AuditLog[] = [
+      {
+        id: 'AUDIT-001',
+        action: 'Evidence Created',
+        actor: 'Officer Smith',
+        time: '2023-05-15T14:30:00Z',
+        details: 'Evidence collected at crime scene'
+      },
+      {
+        id: 'AUDIT-002',
+        action: 'Note Added',
+        actor: 'Tech Analyst Mark',
+        time: '2023-05-15T15:45:00Z',
+        details: 'Initial examination note'
+      },
+      {
+        id: 'AUDIT-003',
+        action: 'File Uploaded',
+        actor: 'Officer Smith',
+        time: '2023-05-15T16:20:00Z',
+        details: 'device_image_1.jpg'
+      },
+      {
+        id: 'AUDIT-004',
+        action: 'Note Edited',
+        actor: 'Forensic Expert Lisa',
+        time: '2023-05-16T10:30:00Z',
+        details: 'Updated note about encrypted apps'
+      }
+    ];
+
+    const mockRelatedEvidence: RelatedEvidence[] = [
+      {
+        id: 'EVD-2023-0457',
+        type: 'Fingerprint',
+        relation: 'Found on device',
+        caseId: 'CASE-2023-0789'
+      },
+      {
+        id: 'EVD-2023-0458',
+        type: 'DNA Sample',
+        relation: 'Recovered from device surface',
+        caseId: 'CASE-2023-0789'
+      }
+    ];
+
+    setEvidence(mockEvidence);
+    setNotes(mockNotes);
+    setFiles(mockFiles);
+    setCustodyChain(mockCustodyChain);
+    setAuditLogs(mockAuditLogs);
+    setRelatedEvidence(mockRelatedEvidence);
+  }, [evidenceId]);
+
+  // Filter notes based on search term
+  const filteredNotes = notes.filter(note =>
+    note.content.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Handle note operations
   const handleAddNote = () => {
-    if (!noteInput.trim()) {
-      setNotification({ open: true, message: 'Note cannot be empty', severity: 'error' });
-      return;
-    }
-    
-    if (selectedNote) {
-      // Edit existing note
-      setNotes(notes.map(note => 
-        note.id === selectedNote 
-          ? { ...note, text: noteInput, edited: true, timestamp: new Date().toLocaleString() }
-          : note
-      ));
-      setNotification({ open: true, message: 'Note updated successfully', severity: 'success' });
-    } else {
-      // Add new note
-      const newNote = {
-        id: notes.length + 1,
-        text: noteInput,
-        author: 'You',
-        timestamp: new Date().toLocaleString(),
-        edited: false
-      };
-      setNotes([newNote, ...notes]);
-      setNotification({ open: true, message: 'Note added successfully', severity: 'success' });
-    }
-    
-    setNoteInput('');
-    setSelectedNote(null);
-    setOpenNotesModal(false);
+    if (!noteContent.trim()) return;
+
+    const newNote: Note = {
+      id: `NOTE-${Date.now()}`,
+      content: noteContent,
+      createdAt: new Date().toISOString(),
+      createdBy: 'Current User', // In a real app, this would be the logged-in user
+      isEdited: false
+    };
+
+    setNotes([...notes, newNote]);
+    setNoteContent('');
+    setIsNoteModalOpen(false);
+    showNotification('Note added successfully', 'success');
+
+    // Add to audit log
+    const auditLog: AuditLog = {
+      id: `AUDIT-${Date.now()}`,
+      action: 'Note Added',
+      actor: 'Current User',
+      time: new Date().toISOString(),
+      details: 'New analysis note'
+    };
+    setAuditLogs([auditLog, ...auditLogs]);
   };
 
-  const handleEditNote = (noteId: number) => {
-    const noteToEdit = notes.find(note => note.id === noteId);
-    if (noteToEdit) {
-      setNoteInput(noteToEdit.text);
-      setSelectedNote(noteId);
-      setOpenNotesModal(true);
-    }
+  const handleEditNote = () => {
+    if (!currentNote || !noteContent.trim()) return;
+
+    const updatedNotes = notes.map(note =>
+      note.id === currentNote.id
+        ? {
+            ...note,
+            content: noteContent,
+            updatedAt: new Date().toISOString(),
+            isEdited: true
+          }
+        : note
+    );
+
+    setNotes(updatedNotes);
+    setCurrentNote(null);
+    setNoteContent('');
+    setIsNoteModalOpen(false);
+    showNotification('Note updated successfully', 'success');
+
+    // Add to audit log
+    const auditLog: AuditLog = {
+      id: `AUDIT-${Date.now()}`,
+      action: 'Note Edited',
+      actor: 'Current User',
+      time: new Date().toISOString(),
+      details: 'Updated note content'
+    };
+    setAuditLogs([auditLog, ...auditLogs]);
   };
 
-  const handleDeleteNote = (noteId: number) => {
-    setNotes(notes.filter(note => note.id !== noteId));
-    setNotification({ open: true, message: 'Note deleted successfully', severity: 'success' });
+  const handleDeleteNote = () => {
+    if (!currentNote) return;
+
+    const updatedNotes = notes.filter(note => note.id !== currentNote.id);
+    setNotes(updatedNotes);
+    setIsDeleteDialogOpen(false);
+    showNotification('Note deleted successfully', 'success');
+
+    // Add to audit log
+    const auditLog: AuditLog = {
+      id: `AUDIT-${Date.now()}`,
+      action: 'Note Deleted',
+      actor: 'Current User',
+      time: new Date().toISOString(),
+      details: `Deleted note: ${currentNote.content.substring(0, 20)}...`
+    };
+    setAuditLogs([auditLog, ...auditLogs]);
+
+    setCurrentNote(null);
   };
 
+  // Handle file operations
   const handleFileUpload = () => {
-    if (!selectedFile) {
-      setNotification({ open: true, message: 'Please select a file first', severity: 'error' });
-      return;
-    }
-    
-    setUploading(true);
-    setFileUploadProgress(0);
-    
-    // Simulate file upload
+    if (!selectedFile) return;
+
+    // Simulate upload progress
     const interval = setInterval(() => {
-      setFileUploadProgress(prev => {
+      setUploadProgress(prev => {
         if (prev >= 100) {
           clearInterval(interval);
-          setUploading(false);
-          
-          // Add the new file
-          const newFile = {
-            id: files.length + 1,
-            name: selectedFile.name,
-            type: selectedFile.type || 'Unknown',
-            size: `${(selectedFile.size / 1024 / 1024).toFixed(1)}MB`,
-            uploaded: new Date().toLocaleDateString(),
-            uploadedBy: 'You'
-          };
-          
-          setFiles([newFile, ...files]);
-          setNotification({ open: true, message: 'File uploaded successfully', severity: 'success' });
-          setOpenFileModal(false);
-          setSelectedFile(null);
           return 100;
         }
         return prev + 10;
       });
     }, 300);
+
+    setTimeout(() => {
+      const newFile: File = {
+        id: `FILE-${Date.now()}`,
+        name: selectedFile.name,
+        type: selectedFile.type || 'unknown',
+        size: `${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB`,
+        uploadedBy: 'Current User',
+        uploadedAt: new Date().toISOString()
+      };
+
+      setFiles([...files, newFile]);
+      setSelectedFile(null);
+      setUploadProgress(0);
+      setIsFileModalOpen(false);
+      showNotification('File uploaded successfully', 'success');
+
+      // Add to audit log
+      const auditLog: AuditLog = {
+        id: `AUDIT-${Date.now()}`,
+        action: 'File Uploaded',
+        actor: 'Current User',
+        time: new Date().toISOString(),
+        details: selectedFile.name
+      };
+      setAuditLogs([auditLog, ...auditLogs]);
+    }, 3000);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setSelectedFile(e.target.files[0]);
+  const handleDeleteFile = () => {
+    if (!currentFile) return;
+
+    const updatedFiles = files.filter(file => file.id !== currentFile.id);
+    setFiles(updatedFiles);
+    setIsDeleteDialogOpen(false);
+    showNotification('File deleted successfully', 'success');
+
+    // Add to audit log
+    const auditLog: AuditLog = {
+      id: `AUDIT-${Date.now()}`,
+      action: 'File Deleted',
+      actor: 'Current User',
+      time: new Date().toISOString(),
+      details: currentFile.name
+    };
+    setAuditLogs([auditLog, ...auditLogs]);
+
+    setCurrentFile(null);
+  };
+
+  const handleDownloadFile = (file: File) => {
+    // Simulate download
+    showNotification(`Downloading ${file.name}...`, 'info');
+    setTimeout(() => {
+      showNotification(`${file.name} downloaded successfully`, 'success');
+    }, 1500);
+  };
+
+  // CSV Export
+  const handleExportCSV = () => {
+    // In a real app, this would generate an actual CSV file
+    const csvData = {
+      evidence,
+      notes,
+      files
+    };
+    console.log('Exporting CSV:', csvData);
+    showNotification('CSV report generated and downloaded', 'success');
+  };
+
+  // Helper functions
+  const showNotification = (message: string, severity: 'success' | 'error' | 'warning' | 'info') => {
+    setNotification({ open: true, message, severity });
+  };
+
+  const handleCloseNotification = () => {
+    setNotification({ ...notification, open: false });
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'submitted':
+        return <InfoIcon color="info" />;
+      case 'processed':
+        return <CheckCircleIcon color="success" />;
+      case 'analyzed':
+        return <AssignmentIcon color="primary" />;
+      case 'archived':
+        return <HistoryIcon color="action" />;
+      default:
+        return <InfoIcon />;
     }
   };
 
-  const handleDownloadFile = (fileId: number) => {
-    // In a real app, this would download the file
-    const file = files.find(f => f.id === fileId);
-    if (file) {
-      setNotification({ open: true, message: `Downloading ${file.name}...`, severity: 'info' });
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'low':
+        return 'success';
+      case 'medium':
+        return 'info';
+      case 'high':
+        return 'warning';
+      case 'critical':
+        return 'error';
+      default:
+        return 'default';
     }
   };
 
-  const handleDeleteFile = (fileId: number) => {
-    setFiles(files.filter(file => file.id !== fileId));
-    setNotification({ open: true, message: 'File deleted successfully', severity: 'success' });
+  const getIntegrityIcon = (integrity: string) => {
+    switch (integrity) {
+      case 'intact':
+        return <CheckCircleIcon color="success" />;
+      case 'compromised':
+        return <ErrorIcon color="error" />;
+      case 'partial':
+        return <WarningIcon color="warning" />;
+      default:
+        return <InfoIcon />;
+    }
   };
 
-  const filteredNotes = notes.filter(n => 
-    n.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    n.author.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  // Columns for files table
+  // DataGrid columns
   const fileColumns: GridColDef[] = [
-    { 
-      field: 'name', 
-      headerName: 'File Name', 
-      width: 250,
-      renderCell: (params) => (
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <FileCopy sx={{ mr: 1 }} />
-          {params.value}
-        </Box>
-      )
-    },
+    { field: 'name', headerName: 'File Name', width: 250 },
     { field: 'type', headerName: 'Type', width: 150 },
-    { field: 'size', headerName: 'Size', width: 120 },
-    { field: 'uploaded', headerName: 'Uploaded', width: 150 },
+    { field: 'size', headerName: 'Size', width: 100 },
     { field: 'uploadedBy', headerName: 'Uploaded By', width: 150 },
+    {
+      field: 'uploadedAt',
+      headerName: 'Upload Date',
+      width: 180,
+      valueFormatter: (params) => safeFormatDate(params.value, 'MMM dd, yyyy HH:mm')
+    },
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 150,
-      renderCell: (params) => (
-        <Box>
+      width: 120,
+      sortable: false,
+      renderCell: params => (
+        <>
           <Tooltip title="Download">
-            <IconButton size="small" onClick={() => handleDownloadFile(params.row.id)}>
-              <Download />
+            <IconButton onClick={() => handleDownloadFile(params.row)}>
+              <DownloadIcon fontSize="small" />
             </IconButton>
           </Tooltip>
           <Tooltip title="Delete">
-            <IconButton size="small" onClick={() => handleDeleteFile(params.row.id)}>
-              <Delete />
+            <IconButton
+              onClick={() => {
+                setCurrentFile(params.row);
+                setIsDeleteDialogOpen(true);
+              }}
+            >
+              <DeleteIcon fontSize="small" color="error" />
             </IconButton>
           </Tooltip>
-        </Box>
+        </>
       )
     }
   ];
 
-  // Columns for audit trail table
   const auditColumns: GridColDef[] = [
     { field: 'action', headerName: 'Action', width: 200 },
-    { field: 'by', headerName: 'By', width: 150 },
-    { field: 'time', headerName: 'Time', width: 150 },
-    { field: 'details', headerName: 'Details', width: 300 },
+    { field: 'actor', headerName: 'Actor', width: 150 },
+    {
+      field: 'time',
+      headerName: 'Time',
+      width: 180,
+      valueFormatter: (params) => safeFormatDate(params.value)
+    },
+    { field: 'details', headerName: 'Details', width: 300, flex: 1 }
   ];
 
+  if (!evidence) {
+    return <Typography>Loading evidence details...</Typography>;
+  }
+
   return (
-    <Box className="evidence-container">
+    <Box sx={{ p: 3 }}>
       {/* Header */}
-      <Box className="evidence-header">
-        <Typography variant="h4" component="h1" className="evidence-title">
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h4" component="h1">
           Evidence Details: {evidence.id}
         </Typography>
-        <Box className="evidence-actions">
-          <CSVLink 
-            data={[
-              ['ID', 'Type', 'Case ID', 'Status'],
-              [evidence.id, evidence.type, evidence.caseId, evidence.status],
-              ...notes.map(note => ['Note', note.text, note.author, note.timestamp]),
-              ...files.map(file => ['File', file.name, file.type, file.uploaded])
-            ]}
-            filename={`evidence_${evidence.id}_report.csv`}
-            className="csv-link"
-          >
-            <Button variant="contained" startIcon={<Download />} className="primary-button">
-              Export Report
-            </Button>
-          </CSVLink>
-          <Button variant="outlined" startIcon={<Link />} className="secondary-button">
-            Link Evidence
-          </Button>
-        </Box>
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<DescriptionIcon />}
+          onClick={handleExportCSV}
+        >
+          Export CSV
+        </Button>
       </Box>
 
-      <Grid container spacing={3}>
-        {/* Basic Information */}
-        <Grid item xs={12} md={6}>
-          <Paper className="evidence-card">
-            <Box className="section-header">
-              <Fingerprint className="section-icon" />
-              <Typography variant="h6" className="section-title">Basic Information</Typography>
-            </Box>
-            <Divider sx={{ mb: 3 }} />
-            
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2">Type</Typography>
-                <Typography>{evidence.type}</Typography>
-              </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2">Case ID</Typography>
-                <Typography>
-                  <Button color="primary">{evidence.caseId}</Button>
-                </Typography>
-              </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2">Collected</Typography>
-                <Typography>{evidence.collected}</Typography>
-              </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2">Collected By</Typography>
-                <Typography>{evidence.collectedBy}</Typography>
-              </Grid>
-              <Grid item xs={12}>
-                <Typography variant="subtitle2">Location Found</Typography>
-                <Typography>{evidence.location}</Typography>
-              </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2">Status</Typography>
-                <Chip
-                  label={evidence.status}
-                  className={`status-chip ${evidence.status.toLowerCase()}`}
-                  icon={
-                    evidence.status === 'Analyzed' ? <CheckCircle /> :
-                    evidence.status === 'Pending' ? <Pending /> : <Error />
-                  }
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2">Priority</Typography>
-                <Chip
-                  label={evidence.priority}
-                  className={`priority-${evidence.priority.toLowerCase()}`}
-                />
-              </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2">Integrity</Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Chip
-                    label={evidence.integrity}
-                    className={`integrity-${evidence.integrity.toLowerCase()}`}
-                    icon={evidence.integrity === 'Intact' ? <VerifiedUser /> : <Lock />}
-                  />
-                </Box>
-              </Grid>
-            </Grid>
-          </Paper>
-        </Grid>
-
-        {/* Analysis Notes */}
-        <Grid item xs={12} md={6}>
-          <Paper className="evidence-card">
-            <Box className="section-header" sx={{ justifyContent: 'space-between' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <Science className="section-icon" />
-                <Typography variant="h6" className="section-title">Analysis Notes</Typography>
-              </Box>
-              <Button 
-                variant="contained" 
-                startIcon={<NoteAdd />}
-                onClick={() => {
-                  setSelectedNote(null);
-                  setOpenNotesModal(true);
-                }}
-                className="primary-button"
-              >
-                Add Note
-              </Button>
-            </Box>
-            <Divider sx={{ mb: 3 }} />
-            
-            <TextField
-              fullWidth
-              size="small"
+      {/* Evidence Metadata */}
+      <Card sx={{ mb: 3 }}>
+        <CardHeader
+          title="Evidence Metadata"
+          avatar={<AssignmentIcon />}
+          action={
+            <Chip
+              icon={getStatusIcon(evidence.status)}
+              label={evidence.status.toUpperCase()}
               variant="outlined"
-              placeholder="Search notes..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search />
-                  </InputAdornment>
-                ),
-              }}
-              sx={{ mb: 3 }}
+              sx={{ textTransform: 'capitalize' }}
             />
-            
-            <List className="notes-list">
-              {filteredNotes.map((note) => (
-                <ListItem 
-                  key={note.id} 
-                  className={`note-item ${note.edited ? 'edited' : ''}`}
+          }
+        />
+        <CardContent>
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={6}>
+              <Typography variant="body1">
+                <strong>Type:</strong> {evidence.type}
+              </Typography>
+              <Typography variant="body1">
+                <strong>Case ID:</strong> {evidence.caseId}
+              </Typography>
+              <Typography variant="body1">
+                <strong>Description:</strong> {evidence.description}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+            <Typography variant="body1">
+  <strong>Collected:</strong> {safeFormatDate(evidence.collectedTime)} by {evidence.collectedBy}
+</Typography>
+              <Typography variant="body1">
+                <strong>Location:</strong> {evidence.location}
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                <Chip
+                  label={`Priority: ${evidence.priority}`}
+                  color={getPriorityColor(evidence.priority)}
+                  size="small"
+                />
+                <Tooltip
+                  title={
+                    evidence.integrity === 'intact'
+                      ? 'Evidence is intact'
+                      : evidence.integrity === 'compromised'
+                      ? 'Evidence has been compromised'
+                      : 'Partial integrity issues detected'
+                  }
                 >
-                  <ListItemAvatar>
-                    <Avatar className="custody-avatar">
-                      <Person />
-                    </Avatar>
-                  </ListItemAvatar>
-                  <ListItemText
-                    primary={<Typography className="note-text">{note.text}</Typography>}
-                    secondary={`${note.author} • ${note.timestamp}${note.edited ? ' • Edited' : ''}`}
+                  <Chip
+                    icon={getIntegrityIcon(evidence.integrity)}
+                    label={`Integrity: ${evidence.integrity}`}
+                    variant="outlined"
+                    size="small"
                   />
-                  <ListItemSecondaryAction>
-                    <Tooltip title="Edit note">
-                      <IconButton onClick={() => handleEditNote(note.id)}>
-                        <Edit />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Delete note">
-                      <IconButton onClick={() => handleDeleteNote(note.id)}>
-                        <Delete />
-                      </IconButton>
-                    </Tooltip>
-                  </ListItemSecondaryAction>
-                </ListItem>
-              ))}
-            </List>
-          </Paper>
-        </Grid>
-
-        {/* Attached Files */}
-        <Grid item xs={12}>
-          <Paper className="evidence-card">
-            <Box className="section-header" sx={{ justifyContent: 'space-between' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <PhotoCamera className="section-icon" />
-                <Typography variant="h6" className="section-title">Attached Files</Typography>
+                </Tooltip>
               </Box>
-              <Button 
-                variant="contained" 
-                startIcon={<CloudUpload />}
-                onClick={() => setOpenFileModal(true)}
-                className="primary-button"
-              >
-                Upload File
-              </Button>
-            </Box>
-            <Divider sx={{ mb: 3 }} />
-            
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+
+      {/* Tabs for different sections */}
+      <Tabs
+        value={activeTab}
+        onChange={(_, newValue) => setActiveTab(newValue)}
+        sx={{ mb: 2 }}
+        variant="scrollable"
+        scrollButtons="auto"
+      >
+        <Tab label="Analysis Notes" icon={<EditIcon />} />
+        <Tab label="Files" icon={<DescriptionIcon />} />
+        <Tab label="Custody Chain" icon={<PersonIcon />} />
+        <Tab label="Related Evidence" icon={<LinkIcon />} />
+        <Tab label="Audit Trail" icon={<HistoryIcon />} />
+      </Tabs>
+
+      {/* Analysis Notes Tab */}
+      {activeTab === 0 && (
+        <Paper sx={{ p: 3, mb: 3 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+            <TextField
+              variant="outlined"
+              size="small"
+              placeholder="Search notes..."
+              InputProps={{
+                startAdornment: <SearchIcon color="action" />
+              }}
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              sx={{ width: 300 }}
+            />
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => {
+                setCurrentNote(null);
+                setNoteContent('');
+                setIsNoteModalOpen(true);
+              }}
+            >
+              Add Note
+            </Button>
+          </Box>
+
+          <List>
+            {filteredNotes.length === 0 ? (
+              <Typography variant="body2" color="textSecondary" sx={{ textAlign: 'center', p: 2 }}>
+                No notes found
+              </Typography>
+            ) : (
+              filteredNotes.map(note => (
+                <React.Fragment key={note.id}>
+                  <ListItem alignItems="flex-start">
+                    <ListItemAvatar>
+                      <Tooltip title={note.createdBy}>
+                        <Avatar>
+                          {note.createdBy.charAt(0).toUpperCase()}
+                        </Avatar>
+                      </Tooltip>
+                    </ListItemAvatar>
+                    <ListItemText
+  primary={note.content}
+  secondary={
+    <>
+      <Typography component="span" variant="body2" color="textPrimary" sx={{ display: 'block' }}>
+        {note.createdBy}
+      </Typography>
+      {safeFormatDate(note.createdAt)}
+      {note.isEdited && (
+        <Typography component="span" variant="caption" color="textSecondary" sx={{ ml: 1 }}>
+          (edited {safeFormatDate(note.updatedAt!)})
+        </Typography>
+      )}
+    </>
+  }
+/>
+                    <ListItemSecondaryAction>
+                      <Tooltip title="Edit">
+                        <IconButton
+                          edge="end"
+                          onClick={() => {
+                            setCurrentNote(note);
+                            setNoteContent(note.content);
+                            setIsNoteModalOpen(true);
+                          }}
+                        >
+                          <EditIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Delete">
+                        <IconButton
+                          edge="end"
+                          onClick={() => {
+                            setCurrentNote(note);
+                            setIsDeleteDialogOpen(true);
+                          }}
+                        >
+                          <DeleteIcon fontSize="small" color="error" />
+                        </IconButton>
+                      </Tooltip>
+                    </ListItemSecondaryAction>
+                  </ListItem>
+                  <Divider variant="inset" component="li" />
+                </React.Fragment>
+              ))
+            )}
+          </List>
+        </Paper>
+      )}
+
+      {/* Files Tab */}
+      {activeTab === 1 && (
+        <Paper sx={{ p: 3, mb: 3 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+            <Button
+              variant="contained"
+              startIcon={<FileUploadIcon />}
+              onClick={() => setIsFileModalOpen(true)}
+            >
+              Upload File
+            </Button>
+          </Box>
+
+          <Box sx={{ height: 400, width: '100%' }}>
             <DataGrid
               rows={files}
               columns={fileColumns}
               pageSize={5}
-              rowsPerPageOptions={[5]}
+              rowsPerPageOptions={[5, 10, 25]}
+              components={{ Toolbar: GridToolbar }}
               disableSelectionOnClick
-              autoHeight
-              className="file-list"
             />
-          </Paper>
-        </Grid>
+          </Box>
+        </Paper>
+      )}
 
-        {/* Chain of Custody */}
-        <Grid item xs={12} md={6}>
-          <Paper className="evidence-card">
-            <Box className="section-header">
-              <History className="section-icon" />
-              <Typography variant="h6" className="section-title">Chain of Custody</Typography>
-            </Box>
-            <Divider sx={{ mb: 3 }} />
-            
-            <List>
-              {evidence.custodyChain.map((entry) => (
-                <ListItem key={entry.id} className="custody-item">
+      {/* Custody Chain Tab */}
+      {activeTab === 2 && (
+        <Paper sx={{ p: 3, mb: 3 }}>
+          <List>
+            {custodyChain.map((event, index) => (
+              <React.Fragment key={event.id}>
+                <ListItem alignItems="flex-start">
                   <ListItemAvatar>
-                    <Avatar className="custody-avatar">
-                      <Person />
+                    <Avatar>
+                      {event.handler.charAt(0).toUpperCase()}
                     </Avatar>
                   </ListItemAvatar>
                   <ListItemText
-                    primary={entry.handler}
+                    primary={
+                      <Typography variant="subtitle1">
+                        <strong>{event.handler}</strong> ({event.role}) - {event.action}
+                      </Typography>
+                    }
                     secondary={
                       <>
-                        <Typography component="span" variant="body2" display="block">
-                          {entry.role}
+                        <Typography
+                          component="span"
+                          variant="body2"
+                          color="textPrimary"
+                          sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                        >
+                          <ScheduleIcon fontSize="small" />
+                          {safeFormatDate(new Date(event.time), 'MMM dd, yyyy HH:mm')}
                         </Typography>
-                        <Typography component="span" variant="body2" display="block">
-                          {entry.time} • {entry.location}
+                        <Typography
+                          component="span"
+                          variant="body2"
+                          color="textPrimary"
+                          sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                        >
+                          <LocationIcon fontSize="small" />
+                          {event.location}
                         </Typography>
                       </>
                     }
                   />
                 </ListItem>
-              ))}
-            </List>
-          </Paper>
-        </Grid>
+                {index < custodyChain.length - 1 && <Divider variant="inset" component="li" />}
+              </React.Fragment>
+            ))}
+          </List>
+        </Paper>
+      )}
 
-        {/* Related Evidence */}
-        <Grid item xs={12} md={6}>
-          <Paper className="evidence-card">
-            <Box className="section-header">
-              <AddLink className="section-icon" />
-              <Typography variant="h6" className="section-title">Related Evidence</Typography>
-            </Box>
-            <Divider sx={{ mb: 3 }} />
-            
-            <Grid container spacing={2} className="related-evidence-grid">
-              {evidence.relatedEvidence.map((item) => (
-                <Grid item xs={12} sm={6} key={item.id}>
-                  <Paper className="related-item">
-                    <Typography variant="subtitle1" sx={{ mb: 1 }}>
-                      <Button color="primary">{item.id}</Button>
+      {/* Related Evidence Tab */}
+      {activeTab === 3 && (
+        <Paper sx={{ p: 3, mb: 3 }}>
+          <Grid container spacing={2}>
+            {relatedEvidence.map(item => (
+              <Grid item xs={12} sm={6} md={4} key={item.id}>
+                <Card variant="outlined">
+                  <CardContent>
+                    <Typography variant="subtitle1" gutterBottom>
+                      <LinkIcon color="primary" sx={{ verticalAlign: 'middle', mr: 1 }} />
+                      {item.type}
                     </Typography>
-                    <Typography variant="body2" sx={{ mb: 1 }}>
-                      Type: {item.type}
+                    <Typography variant="body2" color="textSecondary" gutterBottom>
+                      {item.relation}
                     </Typography>
-                    <Chip
-                      label={item.status}
-                      size="small"
-                      className={`status-chip ${item.status.toLowerCase()}`}
-                    />
-                  </Paper>
-                </Grid>
-              ))}
-            </Grid>
-          </Paper>
-        </Grid>
+                    <Typography variant="caption" display="block">
+                      Evidence ID: {item.id}
+                    </Typography>
+                    <Typography variant="caption" display="block">
+                      Case ID: {item.caseId}
+                    </Typography>
+                  </CardContent>
+                  <CardActions>
+                    <Button size="small" startIcon={<InfoIcon />}>
+                      View Details
+                    </Button>
+                  </CardActions>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        </Paper>
+      )}
 
-        {/* Audit Trail */}
-        <Grid item xs={12}>
-          <Paper className="evidence-card">
-            <Box className="section-header">
-              <Schedule className="section-icon" />
-              <Typography variant="h6" className="section-title">Audit Trail</Typography>
-            </Box>
-            <Divider sx={{ mb: 3 }} />
-            
+      {/* Audit Trail Tab */}
+      {activeTab === 4 && (
+        <Paper sx={{ p: 3, mb: 3 }}>
+          <Box sx={{ height: 500, width: '100%' }}>
             <DataGrid
-              rows={evidence.auditTrail}
+              rows={auditLogs}
               columns={auditColumns}
-              pageSize={5}
-              rowsPerPageOptions={[5]}
+              pageSize={10}
+              rowsPerPageOptions={[10, 25, 50]}
+              components={{ Toolbar: GridToolbar }}
               disableSelectionOnClick
-              autoHeight
             />
-          </Paper>
-        </Grid>
-      </Grid>
-
-      {/* Add/Edit Note Modal */}
-      <Modal open={openNotesModal} onClose={() => setOpenNotesModal(false)} className="evidence-modal">
-        <Paper className="modal-content">
-          <Box className="modal-header">
-            <Typography variant="h6" className="modal-title">
-              {selectedNote ? 'Edit Note' : 'Add New Note'}
-            </Typography>
-            <IconButton onClick={() => setOpenNotesModal(false)}>
-              <Close />
-            </IconButton>
           </Box>
-          
+        </Paper>
+      )}
+
+      {/* Note Modal */}
+      <Modal
+        open={isNoteModalOpen}
+        onClose={() => setIsNoteModalOpen(false)}
+        aria-labelledby="note-modal-title"
+      >
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 600,
+            bgcolor: 'background.paper',
+            boxShadow: 24,
+            p: 4,
+            borderRadius: 1
+          }}
+        >
+          <Typography id="note-modal-title" variant="h6" component="h2" gutterBottom>
+            {currentNote ? 'Edit Note' : 'Add New Note'}
+          </Typography>
           <TextField
             multiline
             rows={6}
             fullWidth
-            value={noteInput}
-            onChange={e => setNoteInput(e.target.value)}
-            placeholder="Enter your analysis notes here..."
             variant="outlined"
+            value={noteContent}
+            onChange={e => setNoteContent(e.target.value)}
+            placeholder="Enter your analysis notes here..."
           />
-          
-          <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
-            <Button 
-              onClick={() => setOpenNotesModal(false)}
-              sx={{ mr: 2 }}
-              className="secondary-button"
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2, gap: 1 }}>
+            <Button onClick={() => setIsNoteModalOpen(false)}>Cancel</Button>
+            <Button
+              variant="contained"
+              onClick={currentNote ? handleEditNote : handleAddNote}
+              disabled={!noteContent.trim()}
             >
-              Cancel
-            </Button>
-            <Button 
-              variant="contained" 
-              onClick={handleAddNote}
-              disabled={!noteInput.trim()}
-              className="primary-button"
-            >
-              {selectedNote ? 'Update Note' : 'Add Note'}
+              {currentNote ? 'Update Note' : 'Add Note'}
             </Button>
           </Box>
-        </Paper>
+        </Box>
       </Modal>
 
       {/* File Upload Modal */}
-      <Modal open={openFileModal} onClose={() => setOpenFileModal(false)} className="evidence-modal">
-        <Paper className="modal-content">
-          <Box className="modal-header">
-            <Typography variant="h6" className="modal-title">Upload New File</Typography>
-            <IconButton onClick={() => setOpenFileModal(false)}>
-              <Close />
-            </IconButton>
-          </Box>
-          
+      <Modal
+        open={isFileModalOpen}
+        onClose={() => setIsFileModalOpen(false)}
+        aria-labelledby="file-modal-title"
+      >
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 500,
+            bgcolor: 'background.paper',
+            boxShadow: 24,
+            p: 4,
+            borderRadius: 1
+          }}
+        >
+          <Typography id="file-modal-title" variant="h6" component="h2" gutterBottom>
+            Upload Evidence File
+          </Typography>
           <input
             type="file"
             ref={fileInputRef}
-            onChange={handleFileChange}
+            onChange={e => setSelectedFile(e.target.files?.[0] || null)}
             style={{ display: 'none' }}
           />
-          
           <Button
             variant="outlined"
             fullWidth
+            startIcon={<CloudUploadIcon />}
             onClick={() => fileInputRef.current?.click()}
             sx={{ mb: 2 }}
-            className="secondary-button"
           >
             {selectedFile ? selectedFile.name : 'Select File'}
           </Button>
-          
-          {selectedFile && (
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="body2">File: {selectedFile.name}</Typography>
-              <Typography variant="body2">Size: {(selectedFile.size / 1024 / 1024).toFixed(2)} MB</Typography>
-              <Typography variant="body2">Type: {selectedFile.type || 'Unknown'}</Typography>
-            </Box>
-          )}
-          
-          {uploading && (
-            <Box className="upload-progress">
-              <LinearProgress variant="determinate" value={fileUploadProgress} />
-              <Typography variant="body2" align="center" sx={{ mt: 1 }}>
-                Uploading: {fileUploadProgress}%
+          {uploadProgress > 0 && (
+            <Box sx={{ width: '100%', mb: 2 }}>
+              <LinearProgress variant="determinate" value={uploadProgress} />
+              <Typography variant="caption" display="block" textAlign="right">
+                {uploadProgress}%
               </Typography>
             </Box>
           )}
-          
-          <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
-            <Button 
-              onClick={() => setOpenFileModal(false)}
-              sx={{ mr: 2 }}
-              className="secondary-button"
-            >
-              Cancel
-            </Button>
-            <Button 
-              variant="contained" 
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2, gap: 1 }}>
+            <Button onClick={() => setIsFileModalOpen(false)}>Cancel</Button>
+            <Button
+              variant="contained"
               onClick={handleFileUpload}
-              disabled={!selectedFile || uploading}
-              startIcon={<CloudUpload />}
-              className="primary-button"
+              disabled={!selectedFile || uploadProgress > 0}
+              startIcon={<CloudUploadIcon />}
             >
               Upload
             </Button>
           </Box>
-        </Paper>
+        </Box>
       </Modal>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={isDeleteDialogOpen}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        aria-labelledby="delete-dialog-title"
+      >
+        <DialogTitle id="delete-dialog-title">
+          Confirm Delete
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body1">
+            Are you sure you want to delete{' '}
+            {currentNote
+              ? 'this note?'
+              : currentFile
+              ? `the file "${currentFile.name}"?`
+              : 'this item?'}
+          </Typography>
+          <Typography variant="body2" color="error" sx={{ mt: 1 }}>
+            This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setIsDeleteDialogOpen(false)}>Cancel</Button>
+          <Button
+            onClick={currentNote ? handleDeleteNote : handleDeleteFile}
+            color="error"
+            variant="contained"
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Notification Snackbar */}
       <Snackbar
         open={notification.open}
         autoHideDuration={6000}
-        onClose={() => setNotification({...notification, open: false})}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        onClose={handleCloseNotification}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
-        <Alert 
-          severity={notification.severity as any} 
+        <Alert
+          onClose={handleCloseNotification}
+          severity={notification.severity}
           sx={{ width: '100%' }}
-          className={`snackbar-${notification.severity}`}
         >
           {notification.message}
         </Alert>
@@ -711,4 +1038,4 @@ const EvidenceDetail: React.FC = () => {
   );
 };
 
-export default EvidenceDetail;
+export default EvidenceDetails;

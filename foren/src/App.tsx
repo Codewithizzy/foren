@@ -11,7 +11,7 @@ import EvidencePage from './pages/EvidencePage';
 import Footwear3DViewer from './pages/Footwear3DViewer';
 import FootwearAnalysisPage from './pages/FootwearAnalysisPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
-import LoginPage from './pages/LoginPage';
+import AuthPage from './pages/AuthPage';
 import MessageAnalysisPage from './pages/MessageAnalysisPage';
 import PredictiveMapPage from './pages/PredictiveMapPage';
 import SettingsPage from './pages/SettingsPage';
@@ -43,7 +43,7 @@ const App: React.FC = () => {
           <Route path="/footwear-3d" element={<Footwear3DViewer />} />
           <Route path="/footwear-analysis" element={<FootwearAnalysisPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/login" element={<LoginPage />} />
+          <Route path="/auth" element={<AuthPage />} />
           <Route path="/message-analysis" element={<MessageAnalysisPage />} />
           <Route path="/predictive-map" element={<PredictiveMapPage />} />
           <Route path="/settings" element={<SettingsPage />} />
