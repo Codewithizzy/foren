@@ -1,61 +1,78 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Box, IconButton, Dialog, DialogActions, DialogContent, List, ListItem, ListItemText, Divider, Button } from '@mui/material';
+import {
+  Box,
+  IconButton,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  List,
+  ListItem,
+  ListItemText,
+  Divider,
+  Button,
+} from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import './Header.css';
 
 const Header: React.FC = () => {
   const [open, setOpen] = useState(false);
 
-  const handleClickOpen = () => {
-    setOpen(true);
-  };
-
-  const handleClose = () => {
-    setOpen(false);
-  };
+  const handleClickOpen = () => setOpen(true);
+  const handleClose = () => setOpen(false);
 
   return (
     <header className="header-container">
-      <Box display="flex" justifyContent="space-between" alignItems="center">
-        {/* Logo and Title */}
-        <Box className="header-logo-container">
-          <img 
-            src="/logo192.png"
-            alt="Logo"
-            className="header-logo"
-          />
-          <h1 className="header-title">Foren</h1>
+      <Box className="header-inner">
+        <Box className="header-left">
+          <Link to="/" className="header-brand">
+            <img src="/logo192.png" alt="Foren Logo" className="header-logo" />
+            <span className="header-title">Foren</span>
+          </Link>
+          
+          <nav className="nav-links">
+            <Link to="/features">Features</Link>
+            <Link to="/docs">Docs</Link>
+            <Link to="/about">About</Link>
+          </nav>
         </Box>
 
-        {/* Hamburger Menu Icon */}
-        <IconButton edge="end" className="menu-button" onClick={handleClickOpen}>
-          <MenuIcon />
-        </IconButton>
+        <Box className="header-right">
+          <Link to="/auth" className="login-button">
+            Sign in
+          </Link>
+          <Link to="/auth" className="signup-button">
+            Sign up
+          </Link>
+
+          <IconButton className="menu-button" onClick={handleClickOpen}>
+            <MenuIcon />
+          </IconButton>
+        </Box>
       </Box>
 
-      {/* Modal/Popup Dialog for Navigation */}
+      {/* Mobile Navigation */}
       <Dialog open={open} onClose={handleClose} className="nav-dialog">
         <DialogContent>
-          <List className="nav-list">
-            <ListItem button className="nav-list-item" onClick={handleClose} component={Link} to="/">
-              <ListItemText primary="Home" className="nav-list-item-text" />
+          <List>
+            <ListItem button onClick={handleClose} component={Link} to="/">
+              <ListItemText primary="Home" />
             </ListItem>
             <Divider className="nav-divider" />
-            <ListItem button className="nav-list-item" onClick={handleClose} component={Link} to="/case-list">
-              <ListItemText primary="Case List" className="nav-list-item-text" />
+            <ListItem button onClick={handleClose} component={Link} to="/features">
+              <ListItemText primary="Features" />
             </ListItem>
             <Divider className="nav-divider" />
-            <ListItem button className="nav-list-item" onClick={handleClose} component={Link} to="/dashboard">
-              <ListItemText primary="Dashboard" className="nav-list-item-text" />
+            <ListItem button onClick={handleClose} component={Link} to="/docs">
+              <ListItemText primary="Docs" />
             </ListItem>
             <Divider className="nav-divider" />
-            <ListItem button className="nav-list-item" onClick={handleClose} component={Link} to="/calibration">
-              <ListItemText primary="Calibration" className="nav-list-item-text" />
+            <ListItem button onClick={handleClose} component={Link} to="/auth">
+              <ListItemText primary="Sign in" />
             </ListItem>
             <Divider className="nav-divider" />
-            <ListItem button className="nav-list-item" onClick={handleClose} component={Link} to="/settings">
-              <ListItemText primary="Settings" className="nav-list-item-text" />
+            <ListItem button onClick={handleClose} component={Link} to="/auth/register">
+              <ListItemText primary="Sign up" />
             </ListItem>
           </List>
         </DialogContent>
