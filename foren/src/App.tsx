@@ -11,7 +11,7 @@ import EvidencePage from './pages/EvidencePage';
 import Footwear3DViewer from './pages/Footwear3DViewer';
 import FootwearAnalysisPage from './pages/FootwearAnalysisPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
-import AuthPage from './pages/AuthPage';
+import EmailLoginForm from './pages/EmailLoginForm';
 import MessageAnalysisPage from './pages/MessageAnalysisPage';
 import PredictiveMapPage from './pages/PredictiveMapPage';
 import SettingsPage from './pages/SettingsPage';
@@ -20,45 +20,56 @@ import TamperAlertsPage from './pages/TamperAlertsPage';
 import TamperingReportPage from './pages/TamperingReportPage';
 import HomePage from './pages/HomePage';
 import UserProfilePage from './pages/UserProfilePage';
-import { AuthProvider } from './contexts/AuthContext';
+import Features from './pages/Features';
+import About from './pages/About';
+import Docs from './pages/Docs';
+
+import { AuthProvider } from './context/AuthContext';
+import { ToastProvider } from './components/ui/use-toast';
 import Header from './components/Header';
 import Footer from './components/Footer';
+import ProtectedRoute from './components/ProtectedRoute';
 
 const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <Router>
-        {/* Header component is now added here */}
-        <Header />
+    <Router>
+      <AuthProvider>
+        <ToastProvider>
+          <Header />
+          <Routes>
+            <Route path="/calibration" element={<CalibrationPage />} />
+            <Route path="/case-detail" element={<CaseDetailPage />} />
+            <Route path="/case-list" element={<CaseListPage />} />
+            <Route path="/chain-of-custody" element={<ChainOfCustodyPage />} />
+            <Route path="/court-statements" element={<CourtStatementsPage />} />
+            <Route path="/crime-scene" element={<CrimeScenePage />} />
 
-        <Routes>
-          <Route path="/calibration" element={<CalibrationPage />} />
-          <Route path="/case-detail" element={<CaseDetailPage />} />
-          <Route path="/case-list" element={<CaseListPage />} />
-          <Route path="/chain-of-custody" element={<ChainOfCustodyPage />} />
-          <Route path="/court-statements" element={<CourtStatementsPage />} />
-          <Route path="/crime-scene" element={<CrimeScenePage />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/evidence" element={<EvidencePage />} />
-          <Route path="/footwear-3d" element={<Footwear3DViewer />} />
-          <Route path="/footwear-analysis" element={<FootwearAnalysisPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/auth" element={<AuthPage />} />
-          <Route path="/message-analysis" element={<MessageAnalysisPage />} />
-          <Route path="/predictive-map" element={<PredictiveMapPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="/suspect-profiler" element={<SuspectProfilerPage />} />
-          <Route path="/tamper-alerts" element={<TamperAlertsPage />} />
-          <Route path="/tampering-report" element={<TamperingReportPage />} />
-          <Route path="/user-profile" element={<UserProfilePage />} />
-          <Route path="/" element={<HomePage />} />
-          <Route path="*" element={<h1>404 - Page Not Found</h1>} />
-        </Routes>
+            {/* Protected Routes */}
+            <Route path="/dashboard" element={<ProtectedRoute element={<DashboardPage />} />} />
+            <Route path="/evidence" element={<ProtectedRoute element={<EvidencePage />} />} />
+            <Route path="/footwear-3d" element={<ProtectedRoute element={<Footwear3DViewer />} />} />
+            <Route path="/footwear-analysis" element={<ProtectedRoute element={<FootwearAnalysisPage />} />} />
+            <Route path="/message-analysis" element={<ProtectedRoute element={<MessageAnalysisPage />} />} />
+            <Route path="/predictive-map" element={<ProtectedRoute element={<PredictiveMapPage />} />} />
+            <Route path="/settings" element={<ProtectedRoute element={<SettingsPage />} />} />
+            <Route path="/suspect-profiler" element={<ProtectedRoute element={<SuspectProfilerPage />} />} />
+            <Route path="/tamper-alerts" element={<ProtectedRoute element={<TamperAlertsPage />} />} />
+            <Route path="/tampering-report" element={<ProtectedRoute element={<TamperingReportPage />} />} />
+            <Route path="/user-profile" element={<ProtectedRoute element={<UserProfilePage />} />} />
 
-        {/* Footer should be inside Router */}
-        <Footer />
-      </Router>
-    </AuthProvider>
+            {/* Unprotected Routes */}
+            <Route path="/auth" element={<EmailLoginForm />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/" element={<HomePage />} />
+            <Route path="/features" element={<Features />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/docs" element={<Docs />} />
+            <Route path="*" element={<h1>404 - Page Not Found</h1>} />
+          </Routes>
+          <Footer />
+        </ToastProvider>
+      </AuthProvider>
+    </Router>
   );
 };
 
