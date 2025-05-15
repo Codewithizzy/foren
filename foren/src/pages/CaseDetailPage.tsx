@@ -1,203 +1,258 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Box, Typography, Tabs, Tab, Chip, Divider, Button, MenuItem, Select, InputLabel, FormControl, Modal, TextField, CircularProgress } from '@mui/material';
-import CaseTimeline from '../components/CaseTimeline';
-import EvidenceList from '../components/EvidenceList';
-import SuspectsPanel from '../components/SuspectsPanel';
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { useCaseContext } from '../context/CaseContext';
+import EvidenceManager from '../components/EvidenceManager';
+import './CaseDetailPage.css';
 
 const CaseDetailPage: React.FC = () => {
-  const { caseId } = useParams();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState(0);
-  const [selectedCaseId, setSelectedCaseId] = useState<string>(caseId || '');
-  const [casesData, setCasesData] = useState<any[]>([]);
-  const [openEditModal, setOpenEditModal] = useState(false);
-  const [openStatusModal, setOpenStatusModal] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(true); // Add loading state
+  const [searchParams] = useSearchParams();
+  const { cases, updateCase, getUsers, getEvidenceForCase } = useCaseContext();
 
-  // Mock data for cases
-  const mockCases = [
-    {
-      id: 'C-001',
-      title: 'Bank Robbery - Main Street',
-      status: 'Active',
-      created: '2023-05-15',
-      assignedTo: 'John Doe',
-      description: 'Armed robbery at First National Bank, suspect left footwear impressions at scene.',
-    },
-    {
-      id: 'C-002',
-      title: 'Stolen Vehicle - Highway 6',
-      status: 'Closed',
-      created: '2023-04-10',
-      assignedTo: 'Jane Doe',
-      description: 'Stolen vehicle recovered, suspects involved were identified from CCTV.',
-    },
-    // Add more mock cases here
-  ];
+  const caseData = cases.find(c => c.id === id);
+  const initialTab = searchParams.get('tab') as 'Overview' | 'Evidence' | 'Court' | 'Notes' | 'Timeline' || 'Overview';
+  const [activeTab, setActiveTab] = useState<'Overview' | 'Evidence' | 'Court' | 'Notes' | 'Timeline'>(initialTab);
 
-  // Handle case data selection
-  const handleCaseChange = (event: React.ChangeEvent<{ value: unknown }>) => {
-    const caseId = event.target.value as string;
-    setSelectedCaseId(caseId);
-    navigate(`/cases/${caseId}`);  // Use navigate instead of history.push
+  // Form state
+  const [editTitle, setEditTitle] = useState('');
+  const [editAssignedTo, setEditAssignedTo] = useState('');
+  const [editStatus, setEditStatus] = useState<'Open' | 'Pending' | 'Closed'>('Open');
+  const [editNotes, setEditNotes] = useState('');
+  const [activityLog, setActivityLog] = useState<string[]>([]);
+  const [noteHistory, setNoteHistory] = useState<{text: string, timestamp: string}[]>([]);
+
+  // Initialize state when caseData is available
+  useEffect(() => {
+    if (caseData) {
+      setEditTitle(caseData.title || '');
+      setEditAssignedTo(caseData.assignedTo || '');
+      setEditStatus(caseData.status || 'Open');
+      setEditNotes(caseData.notes || '');
+      setActivityLog(caseData.activityLog || []);
+      setNoteHistory(caseData.noteHistory || []);
+    }
+  }, [caseData]);
+
+  // Update tab when query parameter changes
+  useEffect(() => {
+    const tabParam = searchParams.get('tab') as 'Overview' | 'Evidence' | 'Court' | 'Notes' | 'Timeline';
+    if (tabParam && tabParam !== activeTab) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams, activeTab]);
+
+  if (!caseData) return <p className="notFound">Case not found.</p>;
+
+  const handleSaveChanges = () => {
+    const timestamp = new Date().toLocaleString();
+    const newNoteEntry = {
+      text: editNotes,
+      timestamp: timestamp
+    };
+    
+    const updatedCase = {
+      ...caseData,
+      title: editTitle,
+      assignedTo: editAssignedTo,
+      status: editStatus,
+      notes: editNotes,
+      noteHistory: [...noteHistory, newNoteEntry],
+      activityLog: [...activityLog, `Notes updated at ${timestamp}`],
+      lastUpdated: new Date().toISOString(),
+    };
+    
+    updateCase(updatedCase);
+    setNoteHistory(updatedCase.noteHistory);
+    alert('Changes saved successfully.');
   };
 
-  useEffect(() => {
-    // Simulate a data fetch
-    setTimeout(() => {
-      setCasesData(mockCases);
-      setLoading(false);
-    }, 1000); // Mocking a 1-second delay for the data fetching process
-  }, []);
+  const handleAddActivity = (message: string) => {
+    const timestampedMessage = `${new Date().toLocaleString()}: ${message}`;
+    setActivityLog(prev => [...prev, timestampedMessage]);
+    
+    // Auto-save when activity is added
+    updateCase({
+      ...caseData,
+      activityLog: [...activityLog, timestampedMessage],
+      lastUpdated: new Date().toISOString(),
+    });
+  };
 
-  // Get the case data for the selected case
-  const caseData = casesData.find((item) => item.id === selectedCaseId);
-
-  // If caseData is undefined or loading, show a loading spinner
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (!caseData && !selectedCaseId) {
-    return (
-      <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <Typography variant="h6" color="error">No case selected. Please select a case from the list below:</Typography>
-        <FormControl fullWidth sx={{ mt: 2 }}>
-          <InputLabel>Select Case</InputLabel>
-          <Select value={selectedCaseId} label="Select Case" onChange={handleCaseChange}>
-            {casesData.map((caseItem) => (
-              <MenuItem key={caseItem.id} value={caseItem.id}>
-                {caseItem.title}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </Box>
-    );
-  }
-
-  // Filter cases based on search query
-  const filteredCases = casesData.filter(
-    (caseItem) =>
-      caseItem.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      caseItem.status.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  // Open/Close Edit Case Details Modal
-  const handleOpenEditModal = () => setOpenEditModal(true);
-  const handleCloseEditModal = () => setOpenEditModal(false);
-
-  // Open/Close Change Status Modal
-  const handleOpenStatusModal = () => setOpenStatusModal(true);
-  const handleCloseStatusModal = () => setOpenStatusModal(false);
+  const handleEvidenceAdded = (evidenceId: string) => {
+    const evidenceMessage = `Evidence added: ${evidenceId}`;
+    handleAddActivity(evidenceMessage);
+    
+    updateCase({
+      ...caseData,
+      evidence: [...(caseData.evidence || []), evidenceId],
+      lastUpdated: new Date().toISOString(),
+    });
+  };
 
   return (
-    <Box sx={{ p: 3 }}>
-      {/* Case Selection Screen */}
-      {selectedCaseId ? (
-        <>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-            <Typography variant="h4">{caseData.title}</Typography>
-            <Chip label={caseData.status} color="primary" />
-          </Box>
+    <div className="caseDetailContainer">
+      <div className="caseDetailHeader">
+        <h2>Case #{caseData.id}</h2>
+        <button className="backButton" onClick={() => navigate(-1)}>← Back</button>
+      </div>
 
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="body1">{caseData.description}</Typography>
-            <Typography variant="caption" color="text.secondary">
-              Case ID: {caseData.id} | Created: {caseData.created} | Assigned To: {caseData.assignedTo}
-            </Typography>
-          </Box>
+      <div className="tabNavigation">
+        {['Overview', 'Evidence', 'Court', 'Notes', 'Timeline'].map(tab => (
+          <button
+            key={tab}
+            className={`tabButton ${activeTab === tab ? 'active' : ''}`}
+            onClick={() => {
+              setActiveTab(tab as any);
+              navigate(`/cases/${id}?tab=${tab}`, { replace: true });
+            }}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
 
-          <Divider sx={{ my: 2 }} />
+      <div className="tabContent">
+        {activeTab === 'Overview' && (
+          <div className="overviewTab">
+            <label>
+              <span>Title:</span>
+              <input 
+                value={editTitle} 
+                onChange={(e) => setEditTitle(e.target.value)}
+                onBlur={handleSaveChanges}
+              />
+            </label>
 
-          <Tabs value={activeTab} onChange={(e, newValue) => setActiveTab(newValue)}>
-            <Tab label="Overview" />
-            <Tab label="Evidence" />
-            <Tab label="Suspects" />
-            <Tab label="Timeline" />
-          </Tabs>
+            <label>
+              <span>Status:</span>
+              <select 
+                value={editStatus} 
+                onChange={(e) => {
+                  setEditStatus(e.target.value);
+                  handleSaveChanges();
+                }}
+              >
+                <option value="Open">Open</option>
+                <option value="Pending">Pending</option>
+                <option value="Closed">Closed</option>
+              </select>
+            </label>
 
-          <Box sx={{ mt: 3 }}>
-            {activeTab === 0 && (
-              <Box>
-                <Typography variant="h6">Case Summary</Typography>
-                <Typography variant="body2" sx={{ mt: 1 }}>
-                  Summary view for case-level insights and quick notes.
-                </Typography>
-              </Box>
+            <label>
+              <span>Assigned To:</span>
+              <select 
+                value={editAssignedTo} 
+                onChange={(e) => {
+                  setEditAssignedTo(e.target.value);
+                  handleSaveChanges();
+                }}
+              >
+                {getUsers().map((user) => (
+                  <option key={user.id} value={user.name}>{user.name}</option>
+                ))}
+              </select>
+            </label>
+
+            <p><strong>Created At:</strong> {new Date(caseData.createdAt).toLocaleString()}</p>
+            {caseData.lastUpdated && (
+              <p><strong>Last Updated:</strong> {new Date(caseData.lastUpdated).toLocaleString()}</p>
             )}
-            {activeTab === 1 && <EvidenceList caseId={selectedCaseId} />}
-            {activeTab === 2 && <SuspectsPanel caseId={selectedCaseId} />}
-            {activeTab === 3 && <CaseTimeline caseId={selectedCaseId} />}
-          </Box>
 
-          <Box sx={{ mt: 4, display: 'flex', gap: 2 }}>
-            <Button variant="outlined" onClick={handleOpenEditModal}>Edit Case Details</Button>
-            <Button variant="contained" color="secondary" onClick={handleOpenStatusModal}>Change Case Status</Button>
-          </Box>
+            <div className="notesHistorySection">
+              <h3>Case Notes History</h3>
+              {noteHistory.length > 0 ? (
+                <ul className="notesHistoryList">
+                  {noteHistory.map((note, index) => (
+                    <li key={index} className="noteEntry">
+                      <div className="noteTimestamp">{note.timestamp}</div>
+                      <div className="noteContent">{note.text}</div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>No notes have been added yet.</p>
+              )}
+            </div>
 
-          {/* Modal for Editing Case Details */}
-          <Modal open={openEditModal} onClose={handleCloseEditModal}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', padding: 2, margin: 'auto', backgroundColor: 'white', width: 400 }}>
-              <Typography variant="h6">Edit Case Details</Typography>
-              <TextField
-                label="Title"
-                defaultValue={caseData.title}
-                variant="outlined"
-                fullWidth
-                sx={{ mb: 2 }}
-              />
-              <TextField
-                label="Description"
-                defaultValue={caseData.description}
-                variant="outlined"
-                fullWidth
-                multiline
-                rows={4}
-                sx={{ mb: 2 }}
-              />
-              <Button variant="contained" color="primary" onClick={handleCloseEditModal}>Save Changes</Button>
-            </Box>
-          </Modal>
+            <button className="saveButton" onClick={handleSaveChanges}>
+              💾 Save Changes
+            </button>
+          </div>
+        )}
 
-          {/* Modal for Changing Case Status */}
-          <Modal open={openStatusModal} onClose={handleCloseStatusModal}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', padding: 2, margin: 'auto', backgroundColor: 'white', width: 400 }}>
-              <Typography variant="h6">Change Case Status</Typography>
-              <TextField
-                label="New Status"
-                defaultValue={caseData.status}
-                variant="outlined"
-                fullWidth
-                sx={{ mb: 2 }}
-              />
-              <Button variant="contained" color="primary" onClick={handleCloseStatusModal}>Save Status</Button>
-            </Box>
-          </Modal>
-        </>
-      ) : (
-        // Case Selection Screen
-        <Box sx={{ p: 3, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-          <Typography variant="h6" color="error">No case selected. Please select a case from the list below:</Typography>
-          <FormControl fullWidth sx={{ mt: 2 }}>
-            <InputLabel>Select Case</InputLabel>
-            <Select value={selectedCaseId} label="Select Case" onChange={handleCaseChange}>
-              {filteredCases.map((caseItem) => (
-                <MenuItem key={caseItem.id} value={caseItem.id}>
-                  {caseItem.title}
-                </MenuItem>
+        {activeTab === 'Evidence' && (
+          <div className="evidenceTab">
+            <EvidenceManager 
+              caseId={caseData.id}
+              onAddEvidence={handleEvidenceAdded}
+            />
+          </div>
+        )}
+
+        {activeTab === 'Court' && (
+          <div className="courtTab">
+            <div className="courtActions">
+              <h3>Court Statements Management</h3>
+              <Link 
+                to={`/court-statements?caseId=${caseData.id}`}
+                className="manageStatementsBtn"
+              >
+                Manage Statements for This Case
+              </Link>
+              <button 
+                className="generateStatementBtn"
+                onClick={() => navigate(`/court-statements?caseId=${caseData.id}&generate=true`)}
+              >
+                Generate New Statement
+              </button>
+            </div>
+            
+            <div className="caseStatementsList">
+              <h4>Existing Statements</h4>
+              {caseData.statements && caseData.statements.length > 0 ? (
+                <ul>
+                  {caseData.statements.map(statementId => (
+                    <li key={statementId}>
+                      <Link to={`/court-statements?statementId=${statementId}`}>
+                        Statement {statementId}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>No statements have been created for this case yet.</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'Notes' && (
+          <div className="notesTab">
+            <textarea
+              placeholder="Add investigation notes here..."
+              value={editNotes}
+              onChange={(e) => setEditNotes(e.target.value)}
+              onBlur={handleSaveChanges}
+            />
+            <button className="saveButton" onClick={handleSaveChanges}>
+              💾 Save Notes
+            </button>
+          </div>
+        )}
+
+        {activeTab === 'Timeline' && (
+          <div className="timelineTab">
+            <h3>Activity Timeline</h3>
+            <ul>
+              {activityLog.map((log, index) => (
+                <li key={index}>{log}</li>
               ))}
-            </Select>
-          </FormControl>
-        </Box>
-      )}
-    </Box>
+            </ul>
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 

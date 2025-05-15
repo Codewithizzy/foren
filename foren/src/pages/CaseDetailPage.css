@@ -1,0 +1,337 @@
+/* CaseDetailPage.css */
+
+.caseDetailContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.caseDetailHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #eaeaea;
+}
+
+.caseDetailHeader h2 {
+  margin: 0;
+  color: #2d3748;
+  font-size: 1.8rem;
+  font-weight: 600;
+}
+
+.backButton {
+  background-color: #f7fafc;
+  color: #4a5568;
+  border: 1px solid #e2e8f0;
+  padding: 0.5rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.backButton:hover {
+  background-color: #edf2f7;
+  border-color: #cbd5e0;
+}
+
+.tabNavigation {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 0.5rem;
+}
+
+.tabButton {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px 8px 0 0;
+  background-color: transparent;
+  color: #4a5568;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.tabButton:hover {
+  background-color: #f8fafc;
+  color: #2d3748;
+}
+
+.tabButton.active {
+  background-color: #4299e1;
+  color: white;
+}
+
+.tabButton.active:hover {
+  background-color: #3182ce;
+}
+
+.tabContent {
+  background-color: #ffffff;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Overview Tab Styles */
+.overviewTab {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.overviewTab label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  font-weight: 500;
+  color: #4a5568;
+}
+
+.overviewTab input,
+.overviewTab select {
+  padding: 0.75rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.overviewTab input:focus,
+.overviewTab select:focus {
+  outline: none;
+  border-color: #4299e1;
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
+}
+
+.overviewTab p {
+  margin: 0.5rem 0;
+  color: #4a5568;
+}
+
+.overviewTab strong {
+  color: #2d3748;
+}
+
+/* Notes Tab Styles */
+.notesTab {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.notesTab textarea {
+  min-height: 200px;
+  padding: 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 1rem;
+  line-height: 1.5;
+  resize: vertical;
+  transition: all 0.2s ease;
+}
+
+.notesTab textarea:focus {
+  outline: none;
+  border-color: #4299e1;
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
+}
+
+/* Timeline Tab Styles */
+.timelineTab {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.timelineTab h3 {
+  margin: 0 0 1rem 0;
+  color: #2d3748;
+}
+
+.timelineTab ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.timelineTab li {
+  background-color: #f8fafc;
+  padding: 1rem;
+  border-left: 4px solid #4299e1;
+  border-radius: 0 6px 6px 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.timelineTab li:hover {
+  background-color: #edf2f7;
+}
+.notesHistorySection {
+  margin-top: 2rem;
+  border-top: 1px solid #eee;
+  padding-top: 1rem;
+}
+
+.notesHistoryList {
+  list-style: none;
+  padding: 0;
+}
+
+.noteEntry {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: #f9f9f9;
+  border-radius: 4px;
+}
+
+.noteTimestamp {
+  font-size: 0.8rem;
+  color: #666;
+  margin-bottom: 0.5rem;
+}
+
+.noteContent {
+  white-space: pre-wrap;
+}
+
+/* Court Tab Styles */
+.courtTab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: #718096;
+  font-style: italic;
+  padding: 20px;
+}
+.courtActions {
+  margin-bottom: 30px;
+}
+
+.manageStatementsBtn, .generateStatementBtn {
+  display: inline-block;
+  margin: 10px 10px 10px 0;
+  padding: 10px 15px;
+  background-color: #4a6fa5;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.generateStatementBtn {
+  background-color: #5cb85c;
+}
+
+.caseStatementsList ul {
+  list-style: none;
+  padding: 0;
+}
+
+.caseStatementsList li {
+  margin: 5px 0;
+}
+
+.caseStatementsList a {
+  color: #4a6fa5;
+  text-decoration: none;
+}
+
+/* CourtStatementsPage.css */
+.backToCaseBtn {
+  margin-left: 20px;
+  padding: 5px 10px;
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+/* Common Button Styles */
+.saveButton {
+  align-self: flex-start;
+  background-color: #48bb78;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.saveButton:hover {
+  background-color: #38a169;
+}
+
+/* Not Found Message */
+.notFound {
+  text-align: center;
+  padding: 2rem;
+  color: #e53e3e;
+  font-weight: 500;
+  font-size: 1.2rem;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .caseDetailContainer {
+    padding: 1rem;
+  }
+  
+  .caseDetailHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .tabNavigation {
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    scrollbar-width: thin;
+  }
+  
+  .tabButton {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+  }
+  
+  .overviewTab {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Animation for tab transitions */
+.tabContent {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0.5; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
