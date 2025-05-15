@@ -1,13 +1,13 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import CalibrationPage from './pages/CalibrationPage';
 import CaseDetailPage from './pages/CaseDetailPage';
-import CaseListPage from './pages/CaseListPage';
+import Cases from './pages/CasesPage';
 import ChainOfCustodyPage from './pages/ChainOfCustodyPage';
 import CourtStatementsPage from './pages/CourtStatementsPage';
 import CrimeScenePage from './pages/CrimeScenePage';
 import DashboardPage from './pages/DashboardPage';
 import EvidencePage from './pages/EvidencePage';
+import EvidenceDetailsPage from './pages/EvidenceDetailPage';
 import Footwear3DViewer from './pages/Footwear3DViewer';
 import FootwearAnalysisPage from './pages/FootwearAnalysisPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
@@ -21,53 +21,57 @@ import TamperingReportPage from './pages/TamperingReportPage';
 import HomePage from './pages/HomePage';
 import UserProfilePage from './pages/UserProfilePage';
 import Features from './pages/Features';
+import { CaseProvider } from './context/CaseContext';
 import About from './pages/About';
 import Docs from './pages/Docs';
 
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './components/ui/use-toast';
-import Header from './components/Header';
-import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
+import LayoutWithDrawer from './components/LayoutWithDrawer';
+import PublicLayout from './components/PublicLayout';
 
 const App: React.FC = () => {
   return (
     <Router>
       <AuthProvider>
+        <CaseProvider>
         <ToastProvider>
-          <Header />
           <Routes>
-            <Route path="/calibration" element={<CalibrationPage />} />
-            <Route path="/case-detail" element={<CaseDetailPage />} />
-            <Route path="/case-list" element={<CaseListPage />} />
-            <Route path="/chain-of-custody" element={<ChainOfCustodyPage />} />
-            <Route path="/court-statements" element={<CourtStatementsPage />} />
-            <Route path="/crime-scene" element={<CrimeScenePage />} />
+            {/* Public Routes with Header & Footer */}
+            <Route element={<PublicLayout />}>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/features" element={<Features />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/docs" element={<Docs />} />
+              <Route path="/auth" element={<EmailLoginForm />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            </Route>
 
-            {/* Protected Routes */}
-            <Route path="/dashboard" element={<ProtectedRoute element={<DashboardPage />} />} />
-            <Route path="/evidence" element={<ProtectedRoute element={<EvidencePage />} />} />
-            <Route path="/footwear-3d" element={<ProtectedRoute element={<Footwear3DViewer />} />} />
-            <Route path="/footwear-analysis" element={<ProtectedRoute element={<FootwearAnalysisPage />} />} />
-            <Route path="/message-analysis" element={<ProtectedRoute element={<MessageAnalysisPage />} />} />
-            <Route path="/predictive-map" element={<ProtectedRoute element={<PredictiveMapPage />} />} />
-            <Route path="/settings" element={<ProtectedRoute element={<SettingsPage />} />} />
-            <Route path="/suspect-profiler" element={<ProtectedRoute element={<SuspectProfilerPage />} />} />
-            <Route path="/tamper-alerts" element={<ProtectedRoute element={<TamperAlertsPage />} />} />
-            <Route path="/tampering-report" element={<ProtectedRoute element={<TamperingReportPage />} />} />
-            <Route path="/user-profile" element={<ProtectedRoute element={<UserProfilePage />} />} />
+            {/* Secured Routes */}
+            <Route path="/dashboard" element={<LayoutWithDrawer><DashboardPage /></LayoutWithDrawer>} />
+            <Route path="/cases" element={<LayoutWithDrawer><Cases /></LayoutWithDrawer>} />
+            <Route path="/cases/:id" element={<LayoutWithDrawer><CaseDetailPage /></LayoutWithDrawer>} />
+            <Route path="/chain-of-custody" element={<LayoutWithDrawer><ChainOfCustodyPage /></LayoutWithDrawer>} />
+            <Route path="/court-statements" element={<LayoutWithDrawer><CourtStatementsPage /></LayoutWithDrawer>} />
+            <Route path="/crime-scene" element={<LayoutWithDrawer><CrimeScenePage /></LayoutWithDrawer>} />
+            <Route path="/evidence" element={<LayoutWithDrawer><EvidencePage /></LayoutWithDrawer>} />
+            <Route path="/evidence-details/:evidenceId" element={<EvidenceDetailsPage />} />
+            <Route path="/footwear-3d" element={<ProtectedRoute element={<LayoutWithDrawer><Footwear3DViewer /></LayoutWithDrawer>} />} />
+            <Route path="/footwear-analysis" element={<ProtectedRoute element={<LayoutWithDrawer><FootwearAnalysisPage /></LayoutWithDrawer>} />} />
+            <Route path="/message-analysis" element={<ProtectedRoute element={<LayoutWithDrawer><MessageAnalysisPage /></LayoutWithDrawer>} />} />
+            <Route path="/predictive-map" element={<ProtectedRoute element={<LayoutWithDrawer><PredictiveMapPage /></LayoutWithDrawer>} />} />
+            <Route path="/settings" element={<ProtectedRoute element={<LayoutWithDrawer><SettingsPage /></LayoutWithDrawer>} />} />
+            <Route path="/suspect-profiler" element={<ProtectedRoute element={<LayoutWithDrawer><SuspectProfilerPage /></LayoutWithDrawer>} />} />
+            <Route path="/tamper-alerts" element={<ProtectedRoute element={<LayoutWithDrawer><TamperAlertsPage /></LayoutWithDrawer>} />} />
+            <Route path="/tampering-report" element={<ProtectedRoute element={<LayoutWithDrawer><TamperingReportPage /></LayoutWithDrawer>} />} />
+            <Route path="/user-profile" element={<ProtectedRoute element={<LayoutWithDrawer><UserProfilePage /></LayoutWithDrawer>} />} />
 
-            {/* Unprotected Routes */}
-            <Route path="/auth" element={<EmailLoginForm />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/" element={<HomePage />} />
-            <Route path="/features" element={<Features />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/docs" element={<Docs />} />
+            {/* Fallback */}
             <Route path="*" element={<h1>404 - Page Not Found</h1>} />
           </Routes>
-          <Footer />
         </ToastProvider>
+        </CaseProvider>
       </AuthProvider>
     </Router>
   );

@@ -1,0 +1,118 @@
+/* Modal Overlay */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+/* Modal Content */
+.modalContent {
+  background-color: #fff;
+  color: #1a1a1a;
+  width: 420px;
+  max-width: 95%;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.2);
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Dark Mode for Modal */
+@media (prefers-color-scheme: dark) {
+  .modalContent {
+    background-color: #1f1f1f;
+    color: #eaeaea;
+  }
+}
+
+/* Modal Title */
+.modalContent h3 {
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+/* Modal Input and Label Styles */
+.modalContent label {
+  display: block;
+  margin-bottom: 0.75rem;
+  font-size: 0.95rem;
+}
+
+.modalContent input,
+.modalContent select {
+  width: 100%;
+  padding: 0.5rem;
+  margin-top: 0.25rem;
+  margin-bottom: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.95rem;
+}
+
+/* Dark Mode for Input and Select */
+@media (prefers-color-scheme: dark) {
+  .modalContent input,
+  .modalContent select {
+    background-color: #2a2a2a;
+    color: #fff;
+    border: 1px solid #555;
+  }
+}
+
+/* Modal Actions (Buttons) */
+.modalActions {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.modalActions button {
+  padding: 0.5rem 1rem;
+  border: none;
+  font-size: 0.95rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+/* Cancel Button Style */
+.modalActions button:first-child {
+  background-color: #ccc;
+  color: #000;
+}
+
+/* Save Button Style */
+.modalActions button:last-child {
+  background-color: #0050b3;
+  color: #fff;
+}
+
+/* Button Hover Effects */
+.modalActions button:first-child:hover {
+  background-color: #bbb;
+}
+
+.modalActions button:last-child:hover {
+  background-color: #003e91;
+}
+
+/* Animation for Modal Fade-In */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

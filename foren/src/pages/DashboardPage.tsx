@@ -1,99 +1,228 @@
-import React, { useEffect, useState } from 'react';
-import { Paper, Typography, Box, CircularProgress, Alert } from '@mui/material';
-import CaseStatusChart from '../components/CaseStatusChart';
-import ActivityTimeline from '../components/ActivityTimeline';
-import RecentCases from '../components/RecentCases';
+import React, { useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import { useCaseContext } from '../context/CaseContext';
+import AddCaseModal from '../components/AddCaseModal';
 import './DashboardPage.css';
 
-const fetchData = async () => {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      const success = true;
-      if (success) {
-        resolve({
-          caseStatus: 'Success',
-          activityTimeline: ['Activity 1', 'Activity 2', 'Activity 3'],
-          recentCases: ['Case 1', 'Case 2', 'Case 3'],
-        });
-      } else {
-        reject('Failed to fetch data');
-      }
-    }, 2000);
-  });
-};
+interface StatCard {
+  label: string;
+  count: number;
+  link?: string;
+}
+
+interface ActivityItem {
+  id: string;
+  description: string;
+  date: string;
+  type: 'case' | 'evidence';
+  completed?: boolean;
+}
 
 const DashboardPage: React.FC = () => {
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const { cases, evidence, addCase } = useCaseContext();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showAddModal, setShowAddModal] = useState(false);
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const result = await fetchData();
-        setData(result);
-      } catch (err) {
-        setError(err as string);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, []);
-
-  if (loading) {
-    return (
-      <Box className="loading-container">
-        <CircularProgress />
-        <Typography className="loading-text">Loading dashboard data...</Typography>
-      </Box>
+  // Filter cases and evidence based on search term
+  const filteredCases = useMemo(() => {
+    if (!searchTerm) return cases;
+    return cases.filter(c => 
+      c.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      c.id.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }
+  }, [cases, searchTerm]);
 
-  if (error) {
-    return (
-      <Box className="error-container">
-        <Alert severity="error">Error: {error}</Alert>
-      </Box>
+  const filteredEvidence = useMemo(() => {
+    if (!searchTerm) return evidence;
+    return evidence.filter(e => 
+      e.type.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      e.id.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  }
+  }, [evidence, searchTerm]);
+
+  // Calculate statistics based on filtered data
+  const stats: StatCard[] = useMemo(() => [
+    { 
+      label: 'Total Cases', 
+      count: filteredCases.length,
+      link: `/cases?search=${searchTerm}`
+    },
+    { 
+      label: 'Open Cases', 
+      count: filteredCases.filter(c => c.status === 'Open').length,
+      link: `/cases?status=Open&search=${searchTerm}`
+    },
+    { 
+      label: 'Closed Cases', 
+      count: filteredCases.filter(c => c.status === 'Closed').length,
+      link: `/cases?status=Closed&search=${searchTerm}`
+    },
+    {
+      label: 'Total Evidence',
+      count: filteredEvidence.length,
+      link: `/evidence?search=${searchTerm}`
+    }
+  ], [filteredCases, filteredEvidence, searchTerm]);
+
+  // Generate activity feed from filtered cases and evidence
+  const activityFeed: ActivityItem[] = useMemo(() => [
+    ...filteredCases.slice(0, 3).map(c => ({
+      id: c.id,
+      description: `${c.status === 'Open' ? 'Opened' : 'Closed'} case: ${c.title}`,
+      date: new Date(c.lastUpdated || c.createdAt).toISOString(),
+      type: 'case' as const,
+      completed: c.status === 'Closed'
+    })),
+    ...filteredEvidence.slice(0, 2).map(e => ({
+      id: e.id,
+      description: `Added evidence (${e.type}) to case`,
+      date: new Date(e.createdAt).toISOString(),
+      type: 'evidence' as const,
+      completed: false
+    }))
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()), 
+  [filteredCases, filteredEvidence]);
+
+  // Format date to relative time (e.g., "2 hours ago")
+  const formatRelativeTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diffInSeconds < 60) return `${diffInSeconds} seconds ago`;
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+    if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)} days ago`;
+    return date.toLocaleDateString();
+  };
+
+  const handleAddCase = (newCase: CaseItem) => {
+    addCase(newCase);
+    setShowAddModal(false);
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Search is already handled by the filteredCases/filteredEvidence
+  };
 
   return (
-    <Box className="dashboard-container">
-      <Typography variant="h4" gutterBottom className="dashboard-title">
-        Forensic Dashboard
-      </Typography>
+    <div className="dashboardContainer">
+      <header className="dashboardHeader">
+        <h1>Dashboard</h1>
+        <form className="searchContainer" onSubmit={handleSearch}>
+          <input
+            type="text"
+            placeholder="Search cases or evidence..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="searchInput"
+          />
+          <button type="submit" className="searchButton">Search</button>
+        </form>
+      </header>
 
-      <Box className="dashboard-grid">
-        <Box className="dashboard-card">
-          <Paper>
-            <Typography variant="h6" gutterBottom className="card-title">
-              Case Status Overview
-            </Typography>
-            <CaseStatusChart data={data.caseStatus} />
-          </Paper>
-        </Box>
+      <div className="dashboardGrid">
+        <div className="leftPanel">
+          <section className="statsSection">
+            <h2>Case Overview</h2>
+            <div className="statsGrid">
+              {stats.map((stat) => (
+                <Link 
+                  to={stat.link || '#'} 
+                  key={stat.label} 
+                  className="statCardLink"
+                >
+                  <div className="statCard">
+                    <h3>{stat.count}</h3>
+                    <p>{stat.label}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
 
-        <Box className="dashboard-card">
-          <Paper>
-            <Typography variant="h6" gutterBottom className="card-title">
-              Recent Activity
-            </Typography>
-            <ActivityTimeline data={data.activityTimeline} />
-          </Paper>
-        </Box>
+          <section className="recentActivity">
+            <h2>Recent Activity</h2>
+            {activityFeed.length === 0 ? (
+              <p className="noResults">No matching activities found</p>
+            ) : (
+              <ul className="activityList">
+                {activityFeed.map((item) => (
+                  <li 
+                    key={item.id} 
+                    className={`activityItem ${item.completed ? 'completed' : ''}`}
+                    onClick={() => {
+                      if (item.type === 'case') {
+                        window.location.href = `/cases/${item.id}`;
+                      } else {
+                        const evidenceItem = evidence.find(e => e.id === item.id);
+                        if (evidenceItem) {
+                          window.location.href = `/cases/${evidenceItem.relatedTo}?tab=Evidence`;
+                        }
+                      }
+                    }}
+                  >
+                    <input 
+                      type="checkbox" 
+                      checked={item.completed || false} 
+                      readOnly 
+                      className="activityCheckbox" 
+                    />
+                    <div className="activityContent">
+                      <p className="activityDescription">{item.description}</p>
+                      <span className="activityDate">
+                        {formatRelativeTime(item.date)}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
 
-        <Box className="dashboard-card">
-          <Paper>
-            <Typography variant="h6" gutterBottom className="card-title">
-              Your Recent Cases
-            </Typography>
-            <RecentCases data={data.recentCases} />
-          </Paper>
-        </Box>
-      </Box>
-    </Box>
+        <div className="quickActions">
+          <button 
+            className="primaryAction" 
+            onClick={() => setShowAddModal(true)}
+          >
+            + New Case
+          </button>
+          
+          <div className="actionGrid">
+            <div className="actionRow">
+              <Link to="/evidence" className="actionButton">
+                Add/Edit Evidence
+              </Link>
+              <Link to="/court-statements" className="actionButton">
+                Generate Court Statement
+              </Link>
+            </div>
+            <div className="actionRow">
+              <Link to="/crime-analysis" className="actionButton">
+                Crime Scene Analysis
+              </Link>
+              <Link to="/evidence-analysis" className="actionButton">
+                Evidence Analysis
+              </Link>
+            </div>
+            <div className="actionRow">
+              <Link to="/message-analysis" className="actionButton">
+                Message Analysis
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {showAddModal && (
+        <AddCaseModal
+          onSave={handleAddCase}
+          onClose={() => setShowAddModal(false)}
+        />
+      )}
+    </div>
   );
 };
 

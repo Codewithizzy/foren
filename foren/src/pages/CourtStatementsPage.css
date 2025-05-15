@@ -1,0 +1,336 @@
+/* CourtStatementsPage.css */
+
+.statementsContainer {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  padding: 2rem;
+  background-color: #f9fafb;
+  min-height: 100vh;
+  font-family: 'Inter', sans-serif;
+}
+
+header {
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+header h2 {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.8rem;
+  color: #1a365d;
+}
+
+.searchBar {
+  margin-bottom: 1.5rem;
+}
+
+.searchBar input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.searchBar input:focus {
+  outline: none;
+  border-color: #4299e1;
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
+}
+
+.generatorControls {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 1.5rem;
+}
+
+.templateSelect,
+.caseSelect {
+  flex: 1;
+  min-width: 200px;
+  padding: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 1rem;
+  background-color: white;
+  transition: all 0.2s ease;
+}
+
+.templateSelect:focus,
+.caseSelect:focus {
+  outline: none;
+  border-color: #4299e1;
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
+}
+
+.generateBtn {
+  padding: 0.75rem 1.5rem;
+  background-color: #4299e1;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.generateBtn:hover {
+  background-color: #3182ce;
+}
+
+/* Generated Preview Styles */
+.generatedPreview {
+  background-color: #f8fafc;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  border: 1px solid #e2e8f0;
+}
+
+.generatedPreview h3 {
+  margin-top: 0;
+  color: #2b6cb0;
+  font-size: 1.3rem;
+}
+
+.generatedPreview p {
+  white-space: pre-line;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+
+.statementEditArea {
+  width: 100%;
+  min-height: 200px;
+  padding: 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 1rem;
+  line-height: 1.5;
+  resize: vertical;
+  margin-bottom: 1rem;
+}
+
+.statementEditArea:focus {
+  outline: none;
+  border-color: #4299e1;
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
+}
+
+.previewActions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.previewActions button {
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.previewActions button:first-child {
+  background-color: #48bb78;
+  color: white;
+  border: none;
+}
+
+.previewActions button:first-child:hover {
+  background-color: #38a169;
+}
+
+.previewActions button:last-child {
+  background-color: #e2e8f0;
+  color: #4a5568;
+  border: none;
+}
+
+.previewActions button:last-child:hover {
+  background-color: #cbd5e0;
+}
+
+/* Statements Table Styles */
+.statementsTableContainer {
+  overflow-x: auto;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.statementsTable {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background-color: white;
+}
+
+.statementsTable th {
+  background-color: #f7fafc;
+  color: #4a5568;
+  font-weight: 600;
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+  position: sticky;
+  top: 0;
+}
+
+.statementsTable td {
+  padding: 1rem;
+  border-bottom: 1px solid #edf2f7;
+  vertical-align: middle;
+}
+
+.statementsTable tr:last-child td {
+  border-bottom: none;
+}
+
+.statementsTable tr:hover td {
+  background-color: #f8fafc;
+}
+
+.viewBtn {
+  padding: 0.5rem 1rem;
+  background-color: #4299e1;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.viewBtn:hover {
+  background-color: #3182ce;
+}
+.actionButtons {
+  display: flex;
+  gap: 8px;
+}
+
+.downloadBtn {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.downloadBtn:hover {
+  background-color: #45a049;
+}
+
+.statementEditArea {
+  width: 100%;
+  min-height: 200px;
+  padding: 10px;
+  margin-bottom: 15px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-family: inherit;
+}
+/* Statement Modal Styles */
+.statementModal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.modalContent {
+  background-color: white;
+  border-radius: 8px;
+  padding: 2rem;
+  max-width: 800px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  animation: slideUp 0.3s ease-out;
+}
+
+.modalContent h3 {
+  margin-top: 0;
+  color: #2b6cb0;
+}
+
+.statementContent {
+  white-space: pre-line;
+  line-height: 1.6;
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background-color: #f8fafc;
+  border-radius: 6px;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.modalActions button {
+  padding: 0.75rem 1.5rem;
+  background-color: #e2e8f0;
+  color: #4a5568;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.modalActions button:hover {
+  background-color: #cbd5e0;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); }
+  to { transform: translateY(0); }
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .statementsContainer {
+    padding: 1rem;
+  }
+  
+  .generatorControls {
+    flex-direction: column;
+  }
+  
+  .templateSelect,
+  .caseSelect {
+    width: 100%;
+  }
+  
+  .generateBtn {
+    width: 100%;
+  }
+  
+  .previewActions {
+    flex-direction: column;
+  }
+  
+  .previewActions button {
+    width: 100%;
+  }
+}

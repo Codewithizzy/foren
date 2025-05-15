@@ -1,118 +1,354 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import './CourtStatementsPage.css';
+import { CourtStatement } from '../types/statements.types';
+import { statementTemplates, generateAIStatement } from '../utils/statementTemplates';
+import { useCaseContext } from '../context/CaseContext';
+import { Packer } from 'docx';
+import { saveAs } from 'file-saver';
 import {
-  Box,
-  Typography,
-  Grid,
-  Paper,
-  Button,
-  useTheme,
-  useMediaQuery,
-  Tooltip,
-  IconButton
-} from '@mui/material';
-import { Clear, HelpOutline } from '@mui/icons-material';
-import StatementGenerator from '../components/StatementGenerator';
-import StatementTemplates from '../components/StatementTemplates'; // still used as a button
+  Document,
+  Paragraph,
+  TextRun,
+  HeadingLevel,
+  AlignmentType,
+} from 'docx';
+
+interface StatementPreviewProps {
+  text: string;
+  onSave: () => void;
+  onEdit: (text: string) => void;
+  onDownload: () => void;
+}
+
+const StatementPreview: React.FC<StatementPreviewProps> = ({ 
+  text, 
+  onSave, 
+  onEdit,
+  onDownload 
+}) => {
+  const [editing, setEditing] = useState(false);
+  const [editedText, setEditedText] = useState(text);
+
+  return (
+    <div className="generatedPreview">
+      <h3>Statement Preview</h3>
+      {editing ? (
+        <>
+          <textarea
+            value={editedText}
+            onChange={(e) => setEditedText(e.target.value)}
+            className="statementEditArea"
+          />
+          <div className="previewActions">
+            <button onClick={() => { onEdit(editedText); setEditing(false); }}>
+              Confirm
+            </button>
+            <button onClick={() => { setEditedText(text); setEditing(false); }}>
+              Cancel
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          <p>{text}</p>
+          <div className="previewActions">
+            <button onClick={onSave}>Save Statement</button>
+            <button onClick={() => setEditing(true)}>Edit</button>
+            <button onClick={onDownload}>Download as DOCX</button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
 
 const CourtStatementsPage: React.FC = () => {
-  const [generatorContent, setGeneratorContent] = useState('');
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { cases, updateCase } = useCaseContext();
+  const queryParams = new URLSearchParams(location.search);
+  const caseId = queryParams.get('caseId') || '';
+  const statementId = queryParams.get('statementId') || '';
+  const generateNew = queryParams.get('generate') === 'true';
 
-  const handleTemplateSelect = (templateContent: string) => {
-    setGeneratorContent(templateContent);
+  const [statements, setStatements] = useState<CourtStatement[]>(() => {
+    const saved = localStorage.getItem('courtStatements');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('');
+  const [caseIdInput, setCaseIdInput] = useState<string>(caseId);
+  const [generatedText, setGeneratedText] = useState<string>('');
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [selectedStatement, setSelectedStatement] = useState<CourtStatement | null>(null);
+
+  useEffect(() => {
+    localStorage.setItem('courtStatements', JSON.stringify(statements));
+  }, [statements]);
+
+  useEffect(() => {
+    if (caseId) {
+      setCaseIdInput(caseId);
+      if (statementId) {
+        const statement = statements.find(s => s.id === statementId);
+        if (statement) {
+          setSelectedStatement(statement);
+        }
+      }
+    }
+  }, [caseId, statementId, statements]);
+
+  useEffect(() => {
+    if (generateNew && caseId) {
+      setSelectedTemplate('T-1');
+    }
+  }, [generateNew, caseId]);
+
+  const generateDocument = (content: string, title: string) => {
+    const doc = new Document({
+      sections: [{
+        properties: {},
+        children: [
+          new Paragraph({
+            text: title,
+            heading: HeadingLevel.HEADING_1,
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 200 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: content,
+                size: 24,
+              }),
+            ],
+          }),
+        ],
+      }],
+    });
+
+    Packer.toBlob(doc).then(blob => {
+      saveAs(blob, `${title.replace(/\s+/g, '_')}.docx`);
+    });
   };
 
-  const handleClearTemplate = () => {
-    setGeneratorContent('');
+  const handleDownloadStatement = (statement: CourtStatement) => {
+    const caseDetails = cases.find(c => c.id === statement.caseId);
+    const title = `Court_Statement_${statement.id}_Case_${statement.caseId}`;
+    const content = `Case: ${statement.caseId}${caseDetails ? ` - ${caseDetails.title}` : ''}
+Generated By: ${statement.generatedBy}
+Date: ${statement.date}
+
+${statement.content}`;
+
+    generateDocument(content, title);
+  };
+
+  const handleGenerate = () => {
+    if (!selectedTemplate || !caseIdInput) {
+      alert('Please select a template and enter a Case ID.');
+      return;
+    }
+
+    const text = generateAIStatement(selectedTemplate, caseIdInput);
+    setGeneratedText(text);
+  };
+
+  const handleSaveStatement = () => {
+    const newStatement: CourtStatement = {
+      id: `S-${Date.now()}`,
+      caseId: caseIdInput,
+      generatedBy: 'AI Generator',
+      date: new Date().toISOString().split('T')[0],
+      content: generatedText,
+      templateUsed: selectedTemplate,
+    };
+    
+    setStatements([newStatement, ...statements]);
+    
+    // Update the case with this statement reference
+    const caseToUpdate = cases.find(c => c.id === caseIdInput);
+    if (caseToUpdate) {
+      const updatedStatements = Array.from(new Set([
+        ...(caseToUpdate.statements || []),
+        newStatement.id
+      ]));
+      updateCase({ 
+        ...caseToUpdate, 
+        statements: updatedStatements,
+        lastUpdated: new Date().toISOString() 
+      });
+    }
+    
+    resetForm();
+  };
+
+  const resetForm = () => {
+    setGeneratedText('');
+    setSelectedTemplate('');
+    if (!caseId) {
+      setCaseIdInput('');
+    }
+  };
+
+  const filteredStatements = statements.filter(statement => 
+    (caseIdInput ? statement.caseId === caseIdInput : true) &&
+    (searchTerm ? 
+      statement.caseId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      statement.generatedBy.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      statement.content.toLowerCase().includes(searchTerm.toLowerCase())
+    : true)
+  );
+
+  const handleViewDetails = (statement: CourtStatement) => {
+    setSelectedStatement(statement);
+  };
+
+  const handleUpdateStatement = (updatedContent: string) => {
+    if (!selectedStatement) return;
+    
+    setStatements(statements.map(s => 
+      s.id === selectedStatement.id 
+        ? { ...s, content: updatedContent } 
+        : s
+    ));
+    setSelectedStatement(null);
   };
 
   return (
-    <Box
-      sx={{
-        p: { xs: 2, md: 3 },
-        maxWidth: '1800px',
-        margin: '0 auto',
-        height: '100vh',
-        overflow: 'auto',
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
-      {/* Header */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          mb: 3,
-        }}
-      >
-        <Typography variant="h4" component="h1">
-          Court Statement Preparation
-        </Typography>
-        <Tooltip title="Use the template button to insert sample text">
-          <IconButton aria-label="help">
-            <HelpOutline />
-          </IconButton>
-        </Tooltip>
-      </Box>
-
-      {/* Template Button */}
-      <Box sx={{ mb: 2 }}>
-        <StatementTemplates onTemplateSelect={handleTemplateSelect} />
-      </Box>
-
-      {/* Generator Panel */}
-      <Paper
-        elevation={3}
-        sx={{
-          p: 2,
-          display: 'flex',
-          flexDirection: 'column',
-          flexGrow: 1,
-          minHeight: 0,
-          overflow: 'auto',
-        }}
-      >
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            mb: 2,
-          }}
-        >
-          <Typography variant="h6" component="h2">
-            Statement Generator
-          </Typography>
-          <Button
-            variant="outlined"
-            color="error"
-            startIcon={<Clear />}
-            onClick={handleClearTemplate}
-            disabled={!generatorContent}
-            aria-label="Clear template"
-          >
-            Clear
-          </Button>
-        </Box>
-
-        <Box
-          sx={{
-            flexGrow: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            minHeight: 0,
-          }}
-        >
-          <StatementGenerator
-            initialStatement={generatorContent}
-            key={generatorContent}
+    <div className="statementsContainer">
+      <header>
+        <h2>
+          {caseIdInput ? `Court Statements for Case ${caseIdInput}` : 'All Court Statements'}
+          {caseId && (
+            <button 
+              className="backToCaseBtn"
+              onClick={() => navigate(`/cases/${caseId}?tab=Court`)}
+            >
+              ← Back to Case
+            </button>
+          )}
+        </h2>
+        <div className="searchBar">
+          <input
+            type="text"
+            placeholder="Search statements..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
           />
-        </Box>
-      </Paper>
-    </Box>
+        </div>
+        <div className="generatorControls">
+          <select 
+            value={selectedTemplate} 
+            onChange={(e) => setSelectedTemplate(e.target.value)}
+            className="templateSelect"
+          >
+            <option value="">Select Template</option>
+            {statementTemplates.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+          
+          <select
+            value={caseIdInput}
+            onChange={(e) => setCaseIdInput(e.target.value)}
+            className="caseSelect"
+            disabled={!!caseId}
+          >
+            <option value="">Select Case</option>
+            {cases.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.id} - {c.title}
+              </option>
+            ))}
+          </select>
+          
+          <button className="generateBtn" onClick={handleGenerate}>
+            Generate Statement
+          </button>
+        </div>
+      </header>
+
+      {generatedText && (
+        <StatementPreview 
+          text={generatedText} 
+          onSave={handleSaveStatement}
+          onEdit={(text) => setGeneratedText(text)}
+          onDownload={() => {
+            const tempStatement = {
+              id: 'TEMP',
+              caseId: caseIdInput,
+              generatedBy: 'AI Generator',
+              date: new Date().toISOString().split('T')[0],
+              content: generatedText,
+              templateUsed: selectedTemplate,
+            };
+            handleDownloadStatement(tempStatement);
+          }}
+        />
+      )}
+
+      {selectedStatement && (
+        <div className="statementModal">
+          <div className="modalContent">
+            <h3>Statement Details: {selectedStatement.id}</h3>
+            <p><strong>Case ID:</strong> {selectedStatement.caseId}</p>
+            <p><strong>Generated By:</strong> {selectedStatement.generatedBy}</p>
+            <p><strong>Date:</strong> {selectedStatement.date}</p>
+            <div className="statementContent">
+              {selectedStatement.content}
+            </div>
+            <div className="modalActions">
+              <button onClick={() => handleDownloadStatement(selectedStatement)}>
+                Download
+              </button>
+              <button onClick={() => setSelectedStatement(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="statementsTableContainer">
+        <table className="statementsTable">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Case ID</th>
+              <th>Generated By</th>
+              <th>Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredStatements.map((s) => (
+              <tr key={s.id}>
+                <td>{s.id}</td>
+                <td>{s.caseId}</td>
+                <td>{s.generatedBy}</td>
+                <td>{s.date}</td>
+                <td className="actionButtons">
+                  <button 
+                    className="viewBtn"
+                    onClick={() => handleViewDetails(s)}
+                  >
+                    View
+                  </button>
+                  <button 
+                    className="downloadBtn"
+                    onClick={() => handleDownloadStatement(s)}
+                  >
+                    Download
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 };
 

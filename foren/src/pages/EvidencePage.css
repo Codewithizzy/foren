@@ -1,0 +1,202 @@
+/* EvidencePage.css */
+.evidenceContainer{
+  padding: 2rem;
+  background-color: #f9fafb;
+  min-height: 100vh;
+  font-family: 'Inter', sans-serif;
+}
+.evidenceTabInner {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #333;
+  padding: 1.5rem;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.evidenceActions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.evidenceActions input {
+  flex: 1;
+  min-width: 250px;
+  padding: 0.75rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+}
+
+.evidenceActions input:focus {
+  outline: none;
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+
+.evidenceActions button {
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.1s ease;
+  white-space: nowrap;
+}
+
+.evidenceActions button:hover {
+  background-color: #3a7bc8;
+}
+
+.evidenceActions button:active {
+  transform: scale(0.98);
+}
+
+.evidenceTable {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 10px rgba(0, 0, 0, 0.05);
+  margin-bottom: 1.5rem;
+}
+
+.evidenceTable th {
+  background-color: #f5f7fa;
+  color: #4a5568;
+  font-weight: 600;
+  padding: 1rem 1.25rem;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  position: relative;
+}
+
+.evidenceTable th:hover {
+  background-color: #ebf2fc;
+}
+
+.evidenceTable th::after {
+  content: '↕';
+  margin-left: 0.5rem;
+  opacity: 0.5;
+  font-size: 0.8em;
+}
+
+.evidenceTable td {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #edf2f7;
+  vertical-align: middle;
+}
+
+.evidenceTable tr:last-child td {
+  border-bottom: none;
+}
+
+.evidenceTable tr:hover td {
+  background-color: #f8fafc;
+}
+
+.evidenceTable .actionsCell {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.evidenceTable button {
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.evidenceTable button:first-child {
+  background-color: #e2e8f0;
+  color: #2d3748;
+}
+
+.evidenceTable button:first-child:hover {
+  background-color: #cbd5e0;
+}
+
+.evidenceTable button:last-child {
+  background-color: #4299e1;
+  color: white;
+}
+
+.evidenceTable button:last-child:hover {
+  background-color: #3182ce;
+}
+
+.emptyState {
+  padding: 2rem;
+  text-align: center;
+  color: #718096;
+  font-style: italic;
+}
+
+/* Pagination container - assuming you'll style the Pagination component separately */
+.paginationContainer {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .evidenceTable {
+    display: block;
+    overflow-x: auto;
+  }
+  
+  .evidenceActions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .evidenceActions button {
+    width: 100%;
+    margin-top: 0.5rem;
+  }
+  
+  .evidenceTable .actionsCell {
+    flex-direction: column;
+  }
+  
+  .evidenceTable button {
+    width: 100%;
+  }
+}
+
+/* Animation for modal appearances */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modalBackdrop {
+  animation: fadeIn 0.2s ease-out;
+}
+
+.modalContent {
+  animation: fadeIn 0.2s ease-out, slideUp 0.2s ease-out;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); }
+  to { transform: translateY(0); }
+}
