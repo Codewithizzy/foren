@@ -2,6 +2,8 @@
 # Foren
 
 Foren is a powerful and flexible tool for managing evidence, notes, files, and custody chains. It provides a simple yet effective way to track and analyze evidence, collaborate with colleagues, and ensure the integrity of your files and notes. This tool is designed for investigators, analysts, and teams who need to maintain a clear record of evidence handling.
+Click [here](https://forenai.netlify.app/) to visit.
+
 
 ## Table of Contents
 
