@@ -1,13 +1,14 @@
+// EvidenceList.tsx
 import React, { useState } from 'react';
 import { 
   Database, Filter, Plus, Search, 
   FileText, FileImage, FileVideo, 
-  FileAudio, File
+  FileAudio, File, ChevronDown, ChevronUp
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { Evidence } from '../../types';
+import { Link, useNavigate } from 'react-router-dom';
+import { Evidence, Case, User } from '../../types';
 
-// Mock evidence data
+// Mock data
 const mockEvidence: Evidence[] = [
   {
     id: '1',
@@ -108,11 +109,27 @@ const mockEvidence: Evidence[] = [
   }
 ];
 
+const mockCases: Case[] = [
+  { id: 'case-001', title: 'Burglary at 123 Main St', description: 'Forced entry through backdoor. Jewelry and electronics stolen.', status: 'active', createdAt: new Date('2025-01-15T08:30:00Z'), updatedAt: new Date('2025-01-20T10:45:00Z'), assignedTo: ['1', '2'], evidenceCount: 5 },
+  { id: 'case-002', title: 'Vandalism in Downtown', description: 'Graffiti found on multiple storefronts. Surveillance footage being reviewed.', status: 'closed', createdAt: new Date('2024-12-05T12:00:00Z'), updatedAt: new Date('2024-12-15T09:20:00Z'), assignedTo: ['2', '3'], evidenceCount: 3 },
+  { id: 'case-003', title: 'Hit and Run on 5th Ave', description: 'Witnesses report a black SUV leaving the scene. Victim hospitalized.', status: 'pending', createdAt: new Date('2025-03-10T14:15:00Z'), updatedAt: new Date('2025-03-12T16:00:00Z'), assignedTo: ['1'], evidenceCount: 4 }
+];
+
+const mockUsers: User[] = [
+  { id: '1', name: 'John Smith', role: 'admin', email: 'john.smith@example.com' },
+  { id: '2', name: 'Emma Wilson', role: 'forensic_officer', email: 'emma.wilson@example.com' },
+  { id: '3', name: 'Michael Chen', role: 'investigator', email: 'michael.chen@example.com' }
+];
+
 const EvidenceList: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<string | null>(null);
+  const [selectedCase, setSelectedCase] = useState<string | null>(null);
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'ascending' | 'descending' } | null>(null);
+  const [expandedEvidence, setExpandedEvidence] = useState<string | null>(null);
+  const navigate = useNavigate();
 
-  // Filter evidence based on search query and type filter
+  // Filter evidence based on search query and filters
   const filteredEvidence = mockEvidence.filter((evidence) => {
     const matchesSearch = 
       evidence.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -120,9 +137,31 @@ const EvidenceList: React.FC = () => {
       evidence.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
     
     const matchesType = selectedType ? evidence.type === selectedType : true;
+    const matchesCase = selectedCase ? evidence.caseId === selectedCase : true;
     
-    return matchesSearch && matchesType;
+    return matchesSearch && matchesType && matchesCase;
   });
+
+  // Sort evidence
+  const sortedEvidence = [...filteredEvidence].sort((a, b) => {
+    if (!sortConfig) return 0;
+    
+    if (a[sortConfig.key as keyof Evidence] < b[sortConfig.key as keyof Evidence]) {
+      return sortConfig.direction === 'ascending' ? -1 : 1;
+    }
+    if (a[sortConfig.key as keyof Evidence] > b[sortConfig.key as keyof Evidence]) {
+      return sortConfig.direction === 'ascending' ? 1 : -1;
+    }
+    return 0;
+  });
+
+  const requestSort = (key: string) => {
+    let direction: 'ascending' | 'descending' = 'ascending';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+    setSortConfig({ key, direction });
+  };
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -149,6 +188,20 @@ const EvidenceList: React.FC = () => {
     }).format(date);
   };
 
+  const toggleExpand = (id: string) => {
+    setExpandedEvidence(expandedEvidence === id ? null : id);
+  };
+
+  const getCaseTitle = (caseId: string) => {
+    const caseItem = mockCases.find(c => c.id === caseId);
+    return caseItem ? caseItem.title : caseId;
+  };
+
+  const getUserName = (userId: string) => {
+    const user = mockUsers.find(u => u.id === userId);
+    return user ? user.name : 'Unknown';
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
@@ -166,8 +219,8 @@ const EvidenceList: React.FC = () => {
       </div>
 
       <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
-        <div className="flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-4">
-          <div className="relative flex-1">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="relative">
             <input
               type="text"
               placeholder="Search evidence..."
@@ -187,7 +240,7 @@ const EvidenceList: React.FC = () => {
             <select
               value={selectedType || ''}
               onChange={(e) => setSelectedType(e.target.value || null)}
-              className="bg-gray-700 border border-gray-600 rounded-md py-2 pl-3 pr-8 text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full bg-gray-700 border border-gray-600 rounded-md py-2 pl-3 pr-8 text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="">All Types</option>
               <option value="photo">Photos</option>
@@ -195,6 +248,24 @@ const EvidenceList: React.FC = () => {
               <option value="video">Videos</option>
               <option value="audio">Audio</option>
               <option value="other">Other</option>
+            </select>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <div className="text-gray-400">
+              <Database size={18} />
+            </div>
+            <select
+              value={selectedCase || ''}
+              onChange={(e) => setSelectedCase(e.target.value || null)}
+              className="w-full bg-gray-700 border border-gray-600 rounded-md py-2 pl-3 pr-8 text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="">All Cases</option>
+              {mockCases.map((caseItem) => (
+                <option key={caseItem.id} value={caseItem.id}>
+                  {caseItem.title}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -205,17 +276,45 @@ const EvidenceList: React.FC = () => {
           <table className="min-w-full divide-y divide-gray-700">
             <thead className="bg-gray-900">
               <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                  Evidence
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('title')}>
+                  <div className="flex items-center">
+                    Evidence
+                    {sortConfig?.key === 'title' && (
+                      sortConfig.direction === 'ascending' ? 
+                        <ChevronUp className="ml-1 h-4 w-4" /> : 
+                        <ChevronDown className="ml-1 h-4 w-4" />
+                    )}
+                  </div>
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                  Case ID
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('caseId')}>
+                  <div className="flex items-center">
+                    Case
+                    {sortConfig?.key === 'caseId' && (
+                      sortConfig.direction === 'ascending' ? 
+                        <ChevronUp className="ml-1 h-4 w-4" /> : 
+                        <ChevronDown className="ml-1 h-4 w-4" />
+                    )}
+                  </div>
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                  Type
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('type')}>
+                  <div className="flex items-center">
+                    Type
+                    {sortConfig?.key === 'type' && (
+                      sortConfig.direction === 'ascending' ? 
+                        <ChevronUp className="ml-1 h-4 w-4" /> : 
+                        <ChevronDown className="ml-1 h-4 w-4" />
+                    )}
+                  </div>
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                  Uploaded
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider cursor-pointer" onClick={() => requestSort('uploadedAt')}>
+                  <div className="flex items-center">
+                    Uploaded
+                    {sortConfig?.key === 'uploadedAt' && (
+                      sortConfig.direction === 'ascending' ? 
+                        <ChevronUp className="ml-1 h-4 w-4" /> : 
+                        <ChevronDown className="ml-1 h-4 w-4" />
+                    )}
+                  </div>
                 </th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                   Tags
@@ -226,68 +325,129 @@ const EvidenceList: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-gray-800 divide-y divide-gray-700">
-              {filteredEvidence.map((evidence) => (
-                <tr key={evidence.id} className="hover:bg-gray-750">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      {evidence.thumbnail ? (
-                        <img 
-                          src={evidence.thumbnail} 
-                          alt={evidence.title} 
-                          className="h-10 w-10 object-cover rounded"
-                        />
-                      ) : (
-                        <div className="h-10 w-10 rounded bg-gray-700 flex items-center justify-center">
-                          {getTypeIcon(evidence.type)}
+              {sortedEvidence.map((evidence) => (
+                <React.Fragment key={evidence.id}>
+                  <tr className="hover:bg-gray-750 cursor-pointer" onClick={() => toggleExpand(evidence.id)}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        {evidence.thumbnail ? (
+                          <img 
+                            src={evidence.thumbnail} 
+                            alt={evidence.title} 
+                            className="h-10 w-10 object-cover rounded"
+                          />
+                        ) : (
+                          <div className="h-10 w-10 rounded bg-gray-700 flex items-center justify-center">
+                            {getTypeIcon(evidence.type)}
+                          </div>
+                        )}
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-white">{evidence.title}</div>
+                          <div className="text-sm text-gray-400">{evidence.description}</div>
                         </div>
-                      )}
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-white">{evidence.title}</div>
-                        <div className="text-sm text-gray-400">{evidence.description}</div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                    {evidence.caseId}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      {getTypeIcon(evidence.type)}
-                      <span className="ml-1.5 text-sm text-gray-300 capitalize">{evidence.type}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                    {formatDate(evidence.uploadedAt)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex flex-wrap gap-1">
-                      {evidence.tags.slice(0, 3).map((tag, index) => (
-                        <span key={index} className="px-2 py-1 text-xs rounded-full bg-gray-700 text-gray-300">
-                          {tag}
-                        </span>
-                      ))}
-                      {evidence.tags.length > 3 && (
-                        <span className="px-2 py-1 text-xs rounded-full bg-gray-700 text-gray-300">
-                          +{evidence.tags.length - 3}
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <Link to={`/evidence/${evidence.id}`} className="text-blue-500 hover:text-blue-400">
-                      View
-                    </Link>
-                  </td>
-                </tr>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                      {getCaseTitle(evidence.caseId)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        {getTypeIcon(evidence.type)}
+                        <span className="ml-1.5 text-sm text-gray-300 capitalize">{evidence.type}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                      <div>{formatDate(evidence.uploadedAt)}</div>
+                      <div className="text-xs text-gray-500">by {getUserName(evidence.uploadedBy)}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex flex-wrap gap-1">
+                        {evidence.tags.slice(0, 3).map((tag, index) => (
+                          <span key={index} className="px-2 py-1 text-xs rounded-full bg-gray-700 text-gray-300">
+                            {tag}
+                          </span>
+                        ))}
+                        {evidence.tags.length > 3 && (
+                          <span className="px-2 py-1 text-xs rounded-full bg-gray-700 text-gray-300">
+                            +{evidence.tags.length - 3}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <Link 
+                        to={`/evidence/${evidence.id}`} 
+                        className="text-blue-500 hover:text-blue-400"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        View
+                      </Link>
+                    </td>
+                  </tr>
+                  {expandedEvidence === evidence.id && (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-4 bg-gray-750">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-400 mb-2">Details</h4>
+                            <div className="text-sm text-white space-y-1">
+                              <p><span className="text-gray-400">Uploaded by:</span> {getUserName(evidence.uploadedBy)}</p>
+                              {evidence.location && (
+                                <p><span className="text-gray-400">Location:</span> {evidence.location.address}</p>
+                              )}
+                              <p><span className="text-gray-400">File:</span> 
+                                <a 
+                                  href={evidence.fileUrl} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="text-blue-500 hover:text-blue-400 ml-1"
+                                >
+                                  {evidence.fileUrl.split('/').pop()}
+                                </a>
+                              </p>
+                            </div>
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-400 mb-2">Quick Actions</h4>
+                            <div className="flex space-x-2">
+                              <button 
+                                className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-white text-sm"
+                                onClick={() => navigate(`/evidence/${evidence.id}`)}
+                              >
+                                View Details
+                              </button>
+                              <button className="px-3 py-1 bg-gray-600 hover:bg-gray-700 rounded text-white text-sm">
+                                Download
+                              </button>
+                              <button className="px-3 py-1 bg-gray-600 hover:bg-gray-700 rounded text-white text-sm">
+                                Share
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               ))}
             </tbody>
           </table>
         </div>
         
-        {filteredEvidence.length === 0 && (
+        {sortedEvidence.length === 0 && (
           <div className="py-8 text-center text-gray-400">
             <Database className="h-12 w-12 mx-auto mb-3 text-gray-600" />
             <p>No evidence found matching your criteria.</p>
+            <button 
+              className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-white text-sm"
+              onClick={() => {
+                setSearchQuery('');
+                setSelectedType(null);
+                setSelectedCase(null);
+              }}
+            >
+              Clear Filters
+            </button>
           </div>
         )}
       </div>

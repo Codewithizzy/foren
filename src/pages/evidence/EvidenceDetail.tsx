@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { Evidence, CustodyLog } from '../../types';
 
-// Mock evidence data - in a real app this would come from an API
+// Mock evidence data
 const mockEvidence: Record<string, Evidence> = {
   '1': {
     id: '1',

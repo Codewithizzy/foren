@@ -1,14 +1,41 @@
 import React, { useState } from 'react';
-import { ArrowRight, Upload, Footprints, Database, AlertTriangle } from 'lucide-react';
+import { ArrowRight, Upload, Footprints, Database, AlertTriangle, FileText, Shield, Link as LinkIcon } from 'lucide-react';
+
+interface MatchResult {
+  id: number;
+  brand: string;
+  model: string;
+  confidence: number;
+  image: string;
+  characteristics: string[];
+  metadata?: {
+    sizeEstimate: string;
+    patternType: string;
+    wearPattern: string;
+    direction: string;
+  };
+}
+
+interface AnalysisReport {
+  timestamp: string;
+  imageHash: string;
+  matches: MatchResult[];
+  blockchainTx?: string;
+}
 
 const FootwearAnalysis: React.FC = () => {
   const [activeStep, setActiveStep] = useState(1);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [analysisComplete, setAnalysisComplete] = useState(false);
-  const [matchResults, setMatchResults] = useState<any[] | null>(null);
+  const [matchResults, setMatchResults] = useState<MatchResult[] | null>(null);
+  const [report, setReport] = useState<AnalysisReport | null>(null);
+  const [isSendingToBlockchain, setIsSendingToBlockchain] = useState(false);
+  const [blockchainSuccess, setBlockchainSuccess] = useState(false);
+  const [analysisNotes, setAnalysisNotes] = useState('');
 
-  // Mock footwear database matches
-  const mockMatches = [
+  // Mock footwear database matches with enhanced metadata
+  const mockMatches: MatchResult[] = [
     {
       id: 1,
       brand: 'Nike',
@@ -20,7 +47,13 @@ const FootwearAnalysis: React.FC = () => {
         'Side swoosh impression',
         'Size estimated: 10.5 US',
         'Wear pattern indicates normal gait'
-      ]
+      ],
+      metadata: {
+        sizeEstimate: '10.5 US',
+        patternType: 'Athletic shoe',
+        wearPattern: 'Normal gait',
+        direction: 'Right to left'
+      }
     },
     {
       id: 2,
@@ -33,7 +66,13 @@ const FootwearAnalysis: React.FC = () => {
         'Different heel curvature',
         'Size estimated: 10 US',
         'Some pattern similarities in forefoot'
-      ]
+      ],
+      metadata: {
+        sizeEstimate: '10 US',
+        patternType: 'Athletic shoe',
+        wearPattern: 'Slight supination',
+        direction: 'Right to left'
+      }
     },
     {
       id: 3,
@@ -46,29 +85,132 @@ const FootwearAnalysis: React.FC = () => {
         'Different brand characteristic',
         'Size estimated: 10-11 US',
         'Low confidence match'
-      ]
+      ],
+      metadata: {
+        sizeEstimate: '10-11 US',
+        patternType: 'Running shoe',
+        wearPattern: 'Neutral',
+        direction: 'Right to left'
+      }
     }
   ];
+
+  // Simulate AI analysis
+  const analyzeImage = async (file: File): Promise<MatchResult[]> => {
+    // call an actual AI service
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(mockMatches);
+      }, 2000);
+    });
+  };
+
+  // Simulate blockchain transaction
+  const sendToBlockchain = async (report: AnalysisReport): Promise<string> => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const txHash = `0x${Math.random().toString(16).substr(2, 64)}`;
+        resolve(txHash);
+      }, 3000);
+    });
+  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // In a real app, you would upload this to a server
-      // For demo purposes, we'll use a local URL
       const imageUrl = URL.createObjectURL(file);
       setSelectedImage(imageUrl);
+      setImageFile(file);
+      setAnalysisComplete(false);
+      setMatchResults(null);
+      setReport(null);
+      setBlockchainSuccess(false);
     }
   };
 
-  const handleRunAnalysis = () => {
-    // Simulate analysis processing
-    setActiveStep(2);
+  const handleRunAnalysis = async () => {
+    if (!imageFile) return;
     
-    setTimeout(() => {
+    setActiveStep(2);
+    setAnalysisComplete(false);
+    
+    try {
+      const results = await analyzeImage(imageFile);
+      setMatchResults(results);
       setAnalysisComplete(true);
-      setMatchResults(mockMatches);
+      
+      // Generate report
+      const newReport: AnalysisReport = {
+        timestamp: new Date().toISOString(),
+        imageHash: `sha256-${Math.random().toString(36).substring(2, 15)}`,
+        matches: results
+      };
+      setReport(newReport);
+      
       setActiveStep(3);
-    }, 2000);
+    } catch (error) {
+      console.error('Analysis failed:', error);
+      setActiveStep(1);
+    }
+  };
+
+  const handleSendToBlockchain = async () => {
+    if (!report) return;
+    
+    setIsSendingToBlockchain(true);
+    try {
+      const txHash = await sendToBlockchain(report);
+      setReport({
+        ...report,
+        blockchainTx: txHash
+      });
+      setBlockchainSuccess(true);
+    } catch (error) {
+      console.error('Blockchain submission failed:', error);
+    } finally {
+      setIsSendingToBlockchain(false);
+    }
+  };
+
+  const generateReport = () => {
+    if (!report || !matchResults) return '';
+    
+    let reportText = `FOOTWEAR ANALYSIS REPORT\n`;
+    reportText += `Generated: ${new Date(report.timestamp).toLocaleString()}\n`;
+    reportText += `Image Hash: ${report.imageHash}\n`;
+    reportText += `Blockchain TX: ${report.blockchainTx || 'Not submitted'}\n\n`;
+    
+    reportText += `ANALYSIS SUMMARY\n`;
+    const topMatch = matchResults[0];
+    reportText += `Top Match: ${topMatch.brand} ${topMatch.model} (${Math.round(topMatch.confidence * 100)}%)\n`;
+    reportText += `Estimated Size: ${topMatch.metadata?.sizeEstimate || 'Unknown'}\n`;
+    reportText += `Pattern Type: ${topMatch.metadata?.patternType || 'Unknown'}\n\n`;
+    
+    reportText += `MATCH DETAILS\n`;
+    matchResults.forEach((match, index) => {
+      reportText += `\nMatch #${index + 1}: ${match.brand} ${match.model}\n`;
+      reportText += `Confidence: ${Math.round(match.confidence * 100)}%\n`;
+      match.characteristics.forEach(char => {
+        reportText += `• ${char}\n`;
+      });
+    });
+    
+    reportText += `\nANALYST NOTES\n${analysisNotes || 'No notes provided'}`;
+    
+    return reportText;
+  };
+
+  const downloadReport = () => {
+    const reportContent = generateReport();
+    const blob = new Blob([reportContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `footwear-analysis-${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -128,7 +270,7 @@ const FootwearAnalysis: React.FC = () => {
               <div className="bg-gray-750 border border-gray-700 rounded-lg p-4">
                 <h3 className="text-white font-medium mb-2">Upload Footwear Evidence</h3>
                 <p className="text-gray-400 text-sm mb-4">
-                  Upload a clear image of a footwear impression to analyze and match against the database.
+                  Upload a clear image of a footwear impression to analyze and match against our database of over 25,000 shoe patterns.
                 </p>
                 <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-600 rounded-lg p-6 bg-gray-800">
                   {selectedImage ? (
@@ -139,7 +281,10 @@ const FootwearAnalysis: React.FC = () => {
                         className="max-h-64 object-contain mb-4 rounded-md" 
                       />
                       <button 
-                        onClick={() => setSelectedImage(null)}
+                        onClick={() => {
+                          setSelectedImage(null);
+                          setImageFile(null);
+                        }}
                         className="text-red-500 hover:text-red-400 text-sm"
                       >
                         Remove Image
@@ -164,40 +309,31 @@ const FootwearAnalysis: React.FC = () => {
                 </div>
               </div>
 
-              {/* For demo purposes, let's provide some sample images */}
               <div>
                 <h3 className="text-white font-medium mb-3">Or use a sample image:</h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  <div 
-                    className="cursor-pointer hover:opacity-80 transition-opacity"
-                    onClick={() => setSelectedImage('https://images.pexels.com/photos/6059631/pexels-photo-6059631.jpeg?auto=compress&cs=tinysrgb&w=800')}
-                  >
-                    <img 
-                      src="https://images.pexels.com/photos/6059631/pexels-photo-6059631.jpeg?auto=compress&cs=tinysrgb&w=800" 
-                      alt="Sample footprint 1" 
-                      className="rounded-md h-32 w-full object-cover"
-                    />
-                  </div>
-                  <div 
-                    className="cursor-pointer hover:opacity-80 transition-opacity"
-                    onClick={() => setSelectedImage('https://images.pexels.com/photos/11437012/pexels-photo-11437012.jpeg?auto=compress&cs=tinysrgb&w=800')}
-                  >
-                    <img 
-                      src="https://images.pexels.com/photos/11437012/pexels-photo-11437012.jpeg?auto=compress&cs=tinysrgb&w=800" 
-                      alt="Sample footprint 2" 
-                      className="rounded-md h-32 w-full object-cover"
-                    />
-                  </div>
-                  <div 
-                    className="cursor-pointer hover:opacity-80 transition-opacity"
-                    onClick={() => setSelectedImage('https://images.pexels.com/photos/2682021/pexels-photo-2682021.jpeg?auto=compress&cs=tinysrgb&w=800')}
-                  >
-                    <img 
-                      src="https://images.pexels.com/photos/2682021/pexels-photo-2682021.jpeg?auto=compress&cs=tinysrgb&w=800" 
-                      alt="Sample footprint 3" 
-                      className="rounded-md h-32 w-full object-cover"
-                    />
-                  </div>
+                  {[
+                    'https://images.pexels.com/photos/6059631/pexels-photo-6059631.jpeg?auto=compress&cs=tinysrgb&w=800',
+                    'https://images.pexels.com/photos/11437012/pexels-photo-11437012.jpeg?auto=compress&cs=tinysrgb&w=800',
+                    'https://images.pexels.com/photos/2682021/pexels-photo-2682021.jpeg?auto=compress&cs=tinysrgb&w=800'
+                  ].map((imgUrl, index) => (
+                    <div 
+                      key={index}
+                      className="cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() => {
+                        setSelectedImage(imgUrl);
+                        // Create a mock file object for sample images
+                        const mockFile = new File([], `sample-${index + 1}.jpg`, { type: 'image/jpeg' });
+                        setImageFile(mockFile);
+                      }}
+                    >
+                      <img 
+                        src={imgUrl} 
+                        alt={`Sample footprint ${index + 1}`} 
+                        className="rounded-md h-32 w-full object-cover"
+                      />
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -223,12 +359,18 @@ const FootwearAnalysis: React.FC = () => {
               <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500 mb-6"></div>
               <h3 className="text-xl font-medium text-white mb-3">Analyzing Footwear Evidence</h3>
               <p className="text-gray-400 text-center max-w-md">
-                Our AI is analyzing the footwear impression and matching it against our database of over 10,000 shoe patterns.
+                Our AI is analyzing the footwear impression using advanced pattern recognition algorithms and matching it against our extensive database.
               </p>
+              <div className="mt-6 w-full max-w-md bg-gray-750 rounded-full h-2.5">
+                <div 
+                  className="bg-blue-600 h-2.5 rounded-full" 
+                  style={{ width: analysisComplete ? '100%' : '70%' }}
+                ></div>
+              </div>
             </div>
           )}
 
-          {activeStep === 3 && matchResults && (
+          {activeStep === 3 && matchResults && report && (
             <div className="space-y-6">
               <div className="bg-gray-750 border border-gray-700 rounded-lg p-4">
                 <div className="flex flex-col md:flex-row">
@@ -245,10 +387,10 @@ const FootwearAnalysis: React.FC = () => {
                       <div className="bg-blue-900/30 p-3 rounded-md border border-blue-900">
                         <h4 className="text-blue-400 font-medium text-sm mb-1">Analysis Results</h4>
                         <ul className="text-sm text-gray-300 space-y-1">
-                          <li>• Pattern type: Athletic shoe</li>
-                          <li>• Estimated size: 10-11 US</li>
-                          <li>• Distinctive heel wear pattern</li>
-                          <li>• Direction: Right to left</li>
+                          <li>• Pattern type: {matchResults[0].metadata?.patternType || 'Unknown'}</li>
+                          <li>• Estimated size: {matchResults[0].metadata?.sizeEstimate || 'Unknown'}</li>
+                          <li>• Wear pattern: {matchResults[0].metadata?.wearPattern || 'Unknown'}</li>
+                          <li>• Direction: {matchResults[0].metadata?.direction || 'Unknown'}</li>
                         </ul>
                       </div>
                     </div>
@@ -315,6 +457,16 @@ const FootwearAnalysis: React.FC = () => {
                 </div>
               </div>
               
+              <div className="bg-gray-750 border border-gray-700 rounded-lg p-4">
+                <h3 className="text-white font-medium mb-3">Analysis Notes</h3>
+                <textarea
+                  value={analysisNotes}
+                  onChange={(e) => setAnalysisNotes(e.target.value)}
+                  placeholder="Add your analysis notes here..."
+                  className="w-full bg-gray-800 border border-gray-700 rounded-md p-3 text-gray-300 text-sm h-32 focus:outline-none focus:ring-1 focus:ring-blue-600"
+                />
+              </div>
+              
               <div className="bg-yellow-900/30 p-4 rounded-md border border-yellow-800 flex items-start">
                 <AlertTriangle className="h-5 w-5 text-yellow-500 mr-3 mt-0.5 flex-shrink-0" />
                 <div>
@@ -325,19 +477,63 @@ const FootwearAnalysis: React.FC = () => {
                 </div>
               </div>
               
-              <div className="flex justify-between">
-                <button
-                  onClick={() => setActiveStep(1)}
-                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-md text-white text-sm"
-                >
-                  Analyze Another
-                </button>
-                <button
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-md text-white text-sm"
-                >
-                  Export Report
-                </button>
+              <div className="flex flex-col sm:flex-row justify-between space-y-3 sm:space-y-0">
+                <div className="flex space-x-3">
+                  <button
+                    onClick={() => setActiveStep(1)}
+                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-md text-white text-sm"
+                  >
+                    Analyze Another
+                  </button>
+                  <button
+                    onClick={downloadReport}
+                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-md text-white text-sm flex items-center"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Export Report
+                  </button>
+                </div>
+                
+                <div className="flex space-x-3">
+                  {!report.blockchainTx ? (
+                    <button
+                      onClick={handleSendToBlockchain}
+                      disabled={isSendingToBlockchain}
+                      className={`px-4 py-2 rounded-md text-white text-sm flex items-center ${
+                        isSendingToBlockchain 
+                          ? 'bg-blue-800 cursor-not-allowed' 
+                          : 'bg-blue-600 hover:bg-blue-700'
+                      }`}
+                    >
+                      {isSendingToBlockchain ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></div>
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <Shield className="h-4 w-4 mr-2" />
+                          Secure to Blockchain
+                        </>
+                      )}
+                    </button>
+                  ) : (
+                    <div className="flex items-center px-4 py-2 bg-green-900/30 border border-green-800 rounded-md text-green-400 text-sm">
+                      <LinkIcon className="h-4 w-4 mr-2" />
+                      <span>Blockchain Verified</span>
+                    </div>
+                  )}
+                </div>
               </div>
+              
+              {report.blockchainTx && (
+                <div className="bg-gray-750 p-3 rounded-md border border-gray-700">
+                  <h4 className="text-white text-sm font-medium mb-1">Blockchain Transaction</h4>
+                  <p className="text-gray-400 text-xs font-mono break-all">
+                    TX Hash: {report.blockchainTx}
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>

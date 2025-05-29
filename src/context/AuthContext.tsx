@@ -5,6 +5,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  signup: (email: string, password: string, name: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -13,14 +14,15 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   login: async () => {},
+  signup: async () => {},
   logout: () => {},
   isAuthenticated: false
 });
 
 export const useAuth = () => useContext(AuthContext);
 
-// Mock user data for development
-const MOCK_USERS: User[] = [
+// Mock user database for development
+let MOCK_USERS_DB: User[] = [
   {
     id: '1',
     name: 'John Smith',
@@ -43,6 +45,9 @@ const MOCK_USERS: User[] = [
     profileImage: 'https://images.pexels.com/photos/1516680/pexels-photo-1516680.jpeg?auto=compress&cs=tinysrgb&w=100'
   }
 ];
+
+// Password for all mock accounts
+const MOCK_PASSWORD = 'password';
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -67,17 +72,48 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     
     return new Promise<void>((resolve, reject) => {
       setTimeout(() => {
-        const foundUser = MOCK_USERS.find(u => u.email === email);
-        if (foundUser && password === 'password') {
+        const foundUser = MOCK_USERS_DB.find(u => u.email === email);
+        if (foundUser && password === MOCK_PASSWORD) {
           setUser(foundUser);
           localStorage.setItem('foren_user', JSON.stringify(foundUser));
           setLoading(false);
           resolve();
         } else {
           setLoading(false);
-          reject(new Error('Invalid credentials'));
+          reject(new Error('Invalid email or password'));
         }
       }, 1000);
+    });
+  };
+
+  const signup = async (email: string, password: string, name: string) => {
+    setLoading(true);
+    
+    return new Promise<void>((resolve, reject) => {
+      setTimeout(() => {
+        // Check if user already exists
+        if (MOCK_USERS_DB.some(u => u.email === email)) {
+          setLoading(false);
+          reject(new Error('Email already in use'));
+          return;
+        }
+
+        // Create new user (default role is investigator)
+        const newUser: User = {
+          id: (MOCK_USERS_DB.length + 1).toString(),
+          name,
+          email,
+          role: 'investigator', // Default role for new users
+          profileImage: `https://i.pravatar.cc/150?u=${email}` // Generate avatar based on email
+        };
+
+        // Add to mock database and "login" the user
+        MOCK_USERS_DB = [...MOCK_USERS_DB, newUser];
+        setUser(newUser);
+        localStorage.setItem('foren_user', JSON.stringify(newUser));
+        setLoading(false);
+        resolve();
+      }, 1500);
     });
   };
 
@@ -91,6 +127,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       user, 
       loading, 
       login, 
+      signup,
       logout, 
       isAuthenticated: !!user 
     }}>
